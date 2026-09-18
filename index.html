@@ -83,9 +83,32 @@ function exportDiscord(){
  let blob=new Blob([s],{type:"text/plain"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="Marooned_Naxx_Summary.txt";a.click();URL.revokeObjectURL(a.href)
 }
 function saveSnapshot(){
- let state={profile:profile.value,charName:charName.value,raidMode:raidMode.value,rows};
- let copy=document.documentElement.outerHTML.replace("</body>",`<script>window.__SAVED__=${JSON.stringify(state)};<\/script></body>`);
- let blob=new Blob(["<!doctype html>"+copy],{type:"text/html"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=(charName.value||"Marooned")+"_Naxx_Command_Center.html";a.click();URL.revokeObjectURL(a.href)
+ let state={profile:profile.value,charName:charName.value,raidMode:raidMode.value,rows:clone(rows)};
+
+ // Build the download from a cloned DOM so saving a saved copy never edits
+ // or strips the Save My Tracker function itself.
+ let docClone=document.documentElement.cloneNode(true);
+ let oldState=docClone.querySelector('#marooned-saved-state');
+ if(oldState) oldState.remove();
+
+ let stateScript=document.createElement('script');
+ stateScript.id='marooned-saved-state';
+ let payload=JSON.stringify(state).replace(/<\/script/gi,'<\\/script');
+ stateScript.textContent='window.__SAVED__='+payload+';';
+ let head=docClone.querySelector('head');
+ head.insertBefore(stateScript,head.firstChild);
+
+ let copy='<!doctype html>\n'+docClone.outerHTML;
+ let blob=new Blob([copy],{type:'text/html;charset=utf-8'});
+ let url=URL.createObjectURL(blob);
+ let a=document.createElement('a');
+ let safeName=(charName.value||'Marooned').trim().replace(/[\\/:*?"<>|]+/g,'_')||'Marooned';
+ a.href=url;
+ a.download=safeName+'_Naxx_Command_Center.html';
+ document.body.appendChild(a);
+ a.click();
+ a.remove();
+ setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 loadProfile(Object.keys(PROFILES)[0]);
 if(window.__SAVED__){profile.value=window.__SAVED__.profile;charName.value=window.__SAVED__.charName;raidMode.value=window.__SAVED__.raidMode;rows=window.__SAVED__.rows;render();notes()}
