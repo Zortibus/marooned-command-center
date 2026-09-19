@@ -127,11 +127,17 @@ function updateStats(){
 function populateCatalogItems(filter=""){
  const sel=document.getElementById("addItem"); if(!sel)return;
  const q=String(filter||"").trim().toLowerCase();
- const names=CATALOG.map(x=>x.name).filter(n=>!q||n.toLowerCase().includes(q)).sort((a,b)=>a.localeCompare(b));
+ const existing=new Set(rows.map(x=>x.name));
+ const names=CATALOG.map(x=>x.name).filter(n=>!existing.has(n)).filter(n=>!q||n.toLowerCase().includes(q)).sort((a,b)=>a.localeCompare(b));
  sel.innerHTML=names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join("");
 }
 function filterCatalogItems(v){populateCatalogItems(v)}
-function addCatalogItem(){let n=addItem.value;if(!n||rows.some(x=>x.name===n))return;let found=CATALOG.find(x=>x.name===n);if(!found)return;let c=clone(found);c.goal=10;c.current=0;c.mode="optional";rows.push(c);render()}
+function addCatalogItem(){
+ let n=addItem.value;if(!n)return;
+ if(rows.some(x=>x.name===n)){populateCatalogItems(itemSearch?.value||"");return;}
+ let found=CATALOG.find(x=>x.name===n);if(!found)return;
+ let c=clone(found);c.goal=10;c.current=0;c.mode="optional";rows.push(c);render();populateCatalogItems(itemSearch?.value||"");
+}
 function importSavedTracker(file){
  const status=document.getElementById("importStatus");
  if(!file){return}
@@ -288,8 +294,24 @@ async function xPublish(r,button){
    return;
  }
  msg.innerHTML=`<span style="color:#ffd166">Sharing ${xesc(r.name)}…</span>`;
- const payload={owner_id:xuid,character_name:char,item_name:r.name,status:r.status,quantity:r.qty,edit_token_hash:null};
- const {data,error}=await xdb.from("exchange_posts").insert(payload).select("id");
+ const payload={owner_id:xuid,character_name:char,item_name:r.name,status:r.status,quantity:r.qty,edit_token_hash:null,active:true};
+ // One active Exchange listing per browser owner + character + item.
+ // Re-sharing updates the existing row instead of creating duplicates.
+ const existing=await xdb.from("exchange_posts")
+   .select("id").eq("owner_id",xuid).eq("character_name",char).eq("item_name",r.name).eq("active",true).order("created_at");
+ if(existing.error) throw existing.error;
+ let data,error;
+ if(existing.data?.length){
+   const keep=existing.data[0].id;
+   ({data,error}=await xdb.from("exchange_posts").update({status:r.status,quantity:r.qty,active:true}).eq("id",keep).select("id"));
+   if(!error && existing.data.length>1){
+     const extras=existing.data.slice(1).map(x=>x.id);
+     const cleanup=await xdb.from("exchange_posts").delete().in("id",extras);
+     if(cleanup.error) throw cleanup.error;
+   }
+ }else{
+   ({data,error}=await xdb.from("exchange_posts").insert(payload).select("id"));
+ }
  if(error){
    msg.innerHTML=`<span class="bad">Share failed: ${xesc(error.message)}</span>`;
    if(button){button.disabled=false;button.textContent="Share";}
@@ -300,7 +322,7 @@ async function xPublish(r,button){
    if(button){button.disabled=false;button.textContent="Share";}
    return;
  }
- msg.innerHTML=`<span class="ok">Shared successfully: ${xesc(char)} — ${xesc(r.name)} — ${r.status.toUpperCase()} ${r.qty}.</span>`;
+ msg.innerHTML=`<span class="ok">${existing.data?.length?"Updated":"Shared successfully"}: ${xesc(char)} — ${xesc(r.name)} — ${r.status.toUpperCase()} ${r.qty}.</span>`;
  await xRefresh();
 }
 window.xRefresh=async function(){
