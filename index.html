@@ -211,7 +211,7 @@
 @media(max-width:900px){#guildBankPrototype[data-gbview="request"] .bankGrid{grid-template-columns:1fr}}
 
 
-/* MCC v55 • ERN QOL — scalable inventory catalog */
+/* MCC v55.1 • PRIORITY A–Z — scalable inventory catalog */
 .gbInventoryFooter{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:10px;padding:10px 4px 2px;color:#9db4c6;font-size:12px}
 .gbShowMore{background:#12334a;border:1px solid #3f7598;color:#fff;border-radius:7px;padding:7px 14px;font-weight:800;cursor:pointer}
 .gbShowMore:hover{background:#194662}
@@ -1178,7 +1178,7 @@ function trackerDisplayRows(){
  });
  else indexed.sort((a,b)=>{
    const rank=x=>x.mode==="required"?0:x.mode==="optional"?1:2;
-   return rank(a.x)-rank(b.x) || a.i-b.i;
+   return rank(a.x)-rank(b.x) || a.x.name.localeCompare(b.x.name);
  });
  return indexed;
 }
