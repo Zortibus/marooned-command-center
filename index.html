@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <html><head><script id="marooned-saved-state">window.__SAVED__=null;</script><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>v56.2 FINAL TEST • MAROONED — Command Center</title>
+<title>v56.3.3 TOOLTIP TEST • MAROONED — Command Center</title>
 <style>
 :root{--bg:#05090e;--panel:#0b131d;--panel2:#101b28;--line:#294e70;--gold:#d6b65b;--text:#f2f5f7;--muted:#aab8c6;--green:#74d69a;--red:#ff7d86;--yellow:#e8c85c;--blue:#75c9ff;--ice:#8fd7ff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 72% 0,#102b45 0,#07111b 34%,#030609 100%);color:var(--text);font:15px/1.45 Segoe UI,Arial,sans-serif}.shell{max-width:1280px;margin:auto;padding:20px}
@@ -232,6 +232,9 @@
 #donationSuggest .bankSuggestionChoice{display:block;width:100%;text-align:left;padding:7px 9px;border:0;border-bottom:1px solid #203448;background:#0c1824;color:#e7f4ff;cursor:pointer}#donationSuggest .bankSuggestionChoice:hover{background:#123149}#donationSuggest .bankSuggestionChoice span{opacity:.58;font-size:11px}
 @media(max-width:1050px){.gbContribGrid{grid-template-columns:1fr}.gbHistoryFilters{grid-template-columns:1fr 1fr}}@media(max-width:650px){.gbContribForm,.gbHistoryFilters{grid-template-columns:1fr}.gbLocationField,.gbNoteField{grid-column:auto}}
 
+
+.mcc-item-link{color:inherit;text-decoration:none;border-bottom:1px dotted rgba(124,207,255,.42);cursor:help}
+.mcc-item-link:hover,.mcc-item-link:focus{color:#bfe9ff;border-bottom-color:#bfe9ff;text-decoration:none}
 </style>
 <style id="mcc-v27-compact-density">
 /* MCC v56 • CHARACTER AUTOSAVE TEST — compact dashboard density */
@@ -1061,6 +1064,28 @@ color:#8ca4ad;font-size:9px;letter-spacing:.05em;vertical-align:1px}
 .hero.hero-approved .hero-approved-image{display:block!important;width:100%!important;height:auto!important;max-height:none!important;object-fit:contain!important;object-position:center!important;opacity:1!important;filter:none!important;-webkit-mask-image:none!important;mask-image:none!important;clip-path:none!important;transform:none!important;border:0!important;border-radius:17px!important;box-shadow:none!important;}
 @media(max-width:760px){.hero.hero-approved{border-radius:12px!important}.hero.hero-approved .hero-approved-image{border-radius:11px!important}}
 </style>
+
+<script id="mcc-wowhead-config">
+const whTooltips={colorLinks:false,iconizeLinks:false,renameLinks:false};
+</script>
+<script id="mcc-wowhead-tooltips" defer src="https://wow.zamimg.com/js/tooltips.js"></script>
+<style id="mcc-v56-3-3-wowhead-tooltip-isolation">
+/* v56.3.3 — surgical isolation only. Preserve Wowhead's own tooltip skin/padding.
+   MCC's unscoped table width/layout and th column widths were stretching tooltip tables. */
+#wowhead-tooltip table, .wowhead-tooltip table {
+  width:auto !important;
+  table-layout:auto !important;
+  border-collapse:separate !important;
+}
+#wowhead-tooltip th:nth-child(1), #wowhead-tooltip th:nth-child(2),
+#wowhead-tooltip th:nth-child(3), #wowhead-tooltip th:nth-child(4),
+#wowhead-tooltip th:nth-child(5), #wowhead-tooltip th:nth-child(6),
+.wowhead-tooltip th:nth-child(1), .wowhead-tooltip th:nth-child(2),
+.wowhead-tooltip th:nth-child(3), .wowhead-tooltip th:nth-child(4),
+.wowhead-tooltip th:nth-child(5), .wowhead-tooltip th:nth-child(6) {
+  width:auto !important;
+}
+</style>
 </head><body>
 <div class="mccCenteredGlobalNav" id="mccGlobalNav"><button class="active" id="mccHomeTab" onclick="mccShowMain()">⚔ Marooned Command Center</button><button id="mccReadmeTab" onclick="mccShowReadme()">📖 README / Start Here</button></div>
 <section id="mccReadme">
@@ -1231,6 +1256,32 @@ function notes(){
  document.getElementById('profileNote').textContent=t;
 }
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function mccEscapeItemText(value){return String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]))}
+let mccTooltipRefreshQueued=false;
+function scheduleItemTooltipRefresh(){
+ if(mccTooltipRefreshQueued)return;
+ mccTooltipRefreshQueued=true;
+ requestAnimationFrame(()=>{
+  mccTooltipRefreshQueued=false;
+  try{window.$WowheadPower?.refreshLinks?.(true)}catch(e){console.debug('Optional Wowhead tooltip refresh skipped',e)}
+ });
+}
+function mccClassicItemIdByName(name){
+ const target=String(name??"").trim().toLowerCase();
+ if(!target)return null;
+ const hit=(window.MAROONED_CLASSIC_ITEMS||[]).find(x=>String(x.n||"").toLowerCase()===target);
+ return hit?.id||null;
+}
+function renderItemLink(itemId,itemName){
+ const text=mccEscapeItemText(itemName||"Unknown item");
+ const raw=(itemId==null||itemId==="")?String(mccClassicItemIdByName(itemName)||""):String(itemId).trim();
+ if(!/^[1-9]\d*$/.test(raw)||!Number.isSafeInteger(Number(raw)))return text;
+ const id=Number(raw); scheduleItemTooltipRefresh();
+ return `<a class="mcc-item-link" href="https://www.wowhead.com/classic/item=${id}" data-wowhead="item=${id}&amp;domain=classic" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">${text}</a>`;
+}
+window.renderItemLink=renderItemLink;
+window.scheduleItemTooltipRefresh=scheduleItemTooltipRefresh;
+document.getElementById('mcc-wowhead-tooltips')?.addEventListener('load',()=>{scheduleItemTooltipRefresh();try{render()}catch{}});
 let TRACKER_SORT="priority";
 function setTrackerSort(v){
  TRACKER_SORT=["priority","az","za","need"].includes(v)?v:"priority";
@@ -1263,7 +1314,7 @@ function render(){
   else if(need===0){status="READY";cls="ready"}
   else if((+x.current||0)>0){status="LOW";cls="low"} else {status="FARM";cls="farm"}
   let tr=document.createElement('tr');
-  tr.innerHTML=`<td><b>${esc(x.name)}</b><div><select class="mode" onchange="setMode(${i},this.value)"><option value="required"${x.mode==="required"?" selected":""}>Required</option><option value="optional"${x.mode==="optional"?" selected":""}>Optional</option><option value="off"${x.mode==="off"?" selected":""}>Don't Track</option></select></div></td><td><input type="number" min="0" inputmode="numeric" value="${x.current||0}" onfocus="this.select()" onchange="setCurrent(${i},this.value)" aria-label="Current quantity for ${esc(x.name)}"></td><td><input class="goal" type="number" min="0" inputmode="numeric" value="${x.goal}" onfocus="this.select()" onchange="setGoal(${i},this.value)" aria-label="Goal quantity for ${esc(x.name)}"></td><td>${x.mode==="off"?"—":need}</td><td><span class="pill ${cls}">${status}</span></td><td class="mat">${esc(x.recipe||"Custom item")}</td>`;
+  tr.innerHTML=`<td><b>${renderItemLink(null,x.name)}</b><div><select class="mode" onchange="setMode(${i},this.value)"><option value="required"${x.mode==="required"?" selected":""}>Required</option><option value="optional"${x.mode==="optional"?" selected":""}>Optional</option><option value="off"${x.mode==="off"?" selected":""}>Don't Track</option></select></div></td><td><input type="number" min="0" inputmode="numeric" value="${x.current||0}" onfocus="this.select()" onchange="setCurrent(${i},this.value)" aria-label="Current quantity for ${esc(x.name)}"></td><td><input class="goal" type="number" min="0" inputmode="numeric" value="${x.goal}" onfocus="this.select()" onchange="setGoal(${i},this.value)" aria-label="Goal quantity for ${esc(x.name)}"></td><td>${x.mode==="off"?"—":need}</td><td><span class="pill ${cls}">${status}</span></td><td class="mat">${esc(x.recipe||"Custom item")}</td>`;
   body.appendChild(tr);
  });
  updateStats();
@@ -1291,7 +1342,7 @@ function updateStats(){
  let pct=req.length?Math.round(100*ready.length/req.length):100;
  readyN.textContent=ready.length; attention.textContent=att; requiredN.textContent=req.length;pctEl=document.getElementById('pct');pctEl.textContent=pct+"%";bar.style.width=pct+"%";
  let farms=rows.filter(x=>x.mode!=="off" && (+x.current||0)<(+x.goal||0));
- farm.innerHTML=farms.length?farms.map(x=>`<div class="farmitem"><b>${esc(x.name)}</b> — need <b>${(+x.goal||0)-(+x.current||0)}</b><div class="mat">${x.mode==="optional"?"Optional • ":""}${esc(x.recipe)}</div></div>`).join(""):'<b style="color:var(--green)">All tracked items are at target.</b>';
+ farm.innerHTML=farms.length?farms.map(x=>`<div class="farmitem"><b>${renderItemLink(null,x.name)}</b> — need <b>${(+x.goal||0)-(+x.current||0)}</b><div class="mat">${x.mode==="optional"?"Optional • ":""}${esc(x.recipe)}</div></div>`).join(""):'<b style="color:var(--green)">All tracked items are at target.</b>';
  let totals={};
  farms.forEach(x=>{let shortage=(+x.goal||0)-(+x.current||0);Object.entries(x.mats||{}).forEach(([m,q])=>totals[m]=(totals[m]||0)+q*shortage)});
  let ent=Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0]));
@@ -1819,6 +1870,8 @@ if(!CLASSIC_BANK_ITEMS.some(x=>x.id===184937)){
  CLASSIC_BANK_ITEMS.push({id:184937,n:"Chronoboon Displacer",il:60,rl:0,c:0,s:0});
 }
 window.MAROONED_CLASSIC_ITEMS = CLASSIC_BANK_ITEMS;
+try{render()}catch(e){}
+scheduleItemTooltipRefresh();
 function bankGuessCategory(name){
  const n=(name||"").toLowerCase();
  if(/\b(potion|elixir|flask|juju|firewater|rum|food|dumpling|bandage|oil|stone)\b/.test(n)) return "Consumables";
@@ -1969,8 +2022,8 @@ function renderContributionHistory(isStaff){
  box.innerHTML=rows.map(c=>{
    const when=new Date(c.contributed_at).toLocaleString(),isCorrection=c.contribution_type==="correction";
    const controls=(isStaff&&!isCorrection&&!correctedIds.has(c.id))?`<button class="correctContributionBtn" data-id="${c.id}" data-qty="${c.quantity}" type="button">Correct Entry</button>`:"";
-   if(isCorrection)return `<article class="gbHistoryRow correction"><div class="gbHistoryMain"><span class="gbHistoryIcon">↳</span><div><b>Correction</b> · ${c.quantity} ${xesc(c.item_name)} <span class="muted">→ ${xesc(c.guild_bank_locations?.name||"Unknown")}</span><div class="gbHistoryMeta">${xesc(when)}${c.note?" • "+xesc(c.note):""}</div></div></div></article>`;
-   return `<article class="gbHistoryRow"><div class="gbHistoryMain"><span class="gbHistoryIcon">🎁</span><div><b>${xesc(c.donor_character)}</b> donated <b>${c.quantity} ${xesc(c.item_name)}</b> <span class="muted">→ ${xesc(c.guild_bank_locations?.name||"Unknown")}</span><div class="gbHistoryMeta">${xesc(when)}${c.note?" • "+xesc(c.note):""}</div></div></div>${controls}</article>`;
+   if(isCorrection)return `<article class="gbHistoryRow correction"><div class="gbHistoryMain"><span class="gbHistoryIcon">↳</span><div><b>Correction</b> · ${c.quantity} ${renderItemLink(null,c.item_name)} <span class="muted">→ ${xesc(c.guild_bank_locations?.name||"Unknown")}</span><div class="gbHistoryMeta">${xesc(when)}${c.note?" • "+xesc(c.note):""}</div></div></div></article>`;
+   return `<article class="gbHistoryRow"><div class="gbHistoryMain"><span class="gbHistoryIcon">🎁</span><div><b>${xesc(c.donor_character)}</b> donated <b>${c.quantity} ${renderItemLink(null,c.item_name)}</b> <span class="muted">→ ${xesc(c.guild_bank_locations?.name||"Unknown")}</span><div class="gbHistoryMeta">${xesc(when)}${c.note?" • "+xesc(c.note):""}</div></div></div>${controls}</article>`;
  }).join("");
  box.querySelectorAll(".correctContributionBtn").forEach(btn=>btn.onclick=async()=>{
    const actualRaw=prompt("Actual quantity received:",btn.dataset.qty); if(actualRaw===null)return;
@@ -2013,7 +2066,7 @@ let xCurrentCandidates=[];
 function xRenderShare(){
  const box=document.getElementById("xShareRows"); if(!box)return;
  xCurrentCandidates=xTrackerCandidates();
- box.innerHTML=xCurrentCandidates.length?xCurrentCandidates.map((r,i)=>`<div class="xShareRow"><span>${xesc(r.name)}</span><b class="${r.status==="need"?"xNeed":"xExtra"}">${r.status.toUpperCase()}</b><span>${r.qty}</span><button type="button" class="xBtn" onclick="window.xShareCandidate(${i},this)">Share</button></div>`).join(""):`<div class="xEmpty">Nothing to share right now. Your tracker has no low or overstocked items.</div>`;
+ box.innerHTML=xCurrentCandidates.length?xCurrentCandidates.map((r,i)=>`<div class="xShareRow"><span>${renderItemLink(null,r.name)}</span><b class="${r.status==="need"?"xNeed":"xExtra"}">${r.status.toUpperCase()}</b><span>${r.qty}</span><button type="button" class="xBtn" onclick="window.xShareCandidate(${i},this)">Share</button></div>`).join(""):`<div class="xEmpty">Nothing to share right now. Your tracker has no low or overstocked items.</div>`;
 }
 window.xShareCandidate=async function(i,button){
  const r=xCurrentCandidates[i];
@@ -2072,7 +2125,7 @@ window.xRefresh=async function(){
  const {data,error}=await xdb.from("exchange_posts").select("id,owner_id,character_name,item_name,status,quantity").eq("active",true).order("created_at");
  const body=document.getElementById("xListings"); if(!body)return;
  if(error){body.innerHTML=`<tr><td colspan="5">${xesc(error.message)}</td></tr>`;return}
- body.innerHTML=(data||[]).length?(data||[]).map(r=>`<tr class="${r.owner_id===xuid?"xOwn":""}"><td>${xesc(r.character_name)}${r.owner_id===xuid?`<span class="xMine">MY LISTING</span>`:""}</td><td>${xesc(r.item_name)}</td><td><span class="xPill ${r.status==="need"?"need":"extra"}">${r.status.toUpperCase()}</span></td><td>${r.quantity}</td><td>${r.owner_id===xuid?`<button class="xBtn" data-xremove="${r.id}">Remove</button>`:""}</td></tr>`).join(""):`<tr><td colspan="5"><div class="xEmpty">No guild listings yet. Somebody gets to be first. 😄</div></td></tr>`;
+ body.innerHTML=(data||[]).length?(data||[]).map(r=>`<tr class="${r.owner_id===xuid?"xOwn":""}"><td>${xesc(r.character_name)}${r.owner_id===xuid?`<span class="xMine">MY LISTING</span>`:""}</td><td>${renderItemLink(null,r.item_name)}</td><td><span class="xPill ${r.status==="need"?"need":"extra"}">${r.status.toUpperCase()}</span></td><td>${r.quantity}</td><td>${r.owner_id===xuid?`<button class="xBtn" data-xremove="${r.id}">Remove</button>`:""}</td></tr>`).join(""):`<tr><td colspan="5"><div class="xEmpty">No guild listings yet. Somebody gets to be first. 😄</div></td></tr>`;
  body.querySelectorAll("[data-xremove]").forEach(b=>b.onclick=async()=>{const {error}=await xdb.from("exchange_posts").delete().eq("id",b.dataset.xremove);document.getElementById("xMsg").textContent=error?error.message:"Listing removed.";await xRefresh()});
  const matchBox=document.getElementById("xMatches");
  // Build trade matches directly from the live exchange_posts rows. This keeps
@@ -2105,7 +2158,7 @@ window.xRefresh=async function(){
      ? `<span class="xCovered">✓ Need can be fully covered: ${covered}</span>`
      : `<span class="xPartial">${covered} available • ${remaining} still needed</span>`;
    return `<div class="xMatchGroup">
-     <div class="xMatchGroupHead"><span>⚔ TRADE MATCH</span><strong>${xesc(g.item)}</strong></div>
+     <div class="xMatchGroupHead"><span>⚔ TRADE MATCH</span><strong>${renderItemLink(null,g.item)}</strong></div>
      <div class="xMatchGroupBody">
        <div><span class="xSub">NEEDS</span><span class="xMatchWho">${xesc(g.needs)}</span> <b class="xNeed">${g.needed}</b></div>
        <div><span class="xSub">AVAILABLE FROM</span><div class="xSellers">${sellerHtml}</div></div>
@@ -2141,7 +2194,7 @@ window.xRefresh=async function(){
  const pend=pt.data||[];
  pendingBox.innerHTML=pend.length?pend.map(t=>{
    const receiver=t.receiver_owner_id===xuid, giver=t.giver_owner_id===xuid;
-   return `<div class="xPendingBox"><div class="xPendingTitle">${xesc(t.giver_character)} → ${xesc(t.receiver_character)}: ${t.quantity} × ${xesc(t.item_name)}</div>
+   return `<div class="xPendingBox"><div class="xPendingTitle">${xesc(t.giver_character)} → ${xesc(t.receiver_character)}: ${t.quantity} × ${renderItemLink(null,t.item_name)}</div>
      <div style="margin-top:4px">${receiver?`<b>${xesc(t.giver_character)}</b> reports this was delivered to you in-game. Confirm only after you actually received it.`:`Waiting for <b>${xesc(t.receiver_character)}</b> to confirm receipt.`}</div>
      <div class="xPendingActions">${receiver?`<button class="xConfirmBtn" data-xconfirm="${t.id}">✓ CONFIRM RECEIVED</button>`:""}${giver||receiver?`<button class="xCancelBtn" data-xcancel="${t.id}">CANCEL</button>`:""}</div></div>`;
  }).join(""):`<div class="xEmpty">No trades waiting for confirmation.</div>`;
@@ -2196,8 +2249,8 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
  function grouped(){
    const map=new Map();
    fakeRows.forEach(r=>{
-     if(!map.has(r.item))map.set(r.item,{item:r.item,qty:0,reserved:0,locations:[]});
-     const g=map.get(r.item);g.qty+=r.qty;g.locations.push(r);
+     if(!map.has(r.item))map.set(r.item,{item:r.item,itemId:r.itemId||null,qty:0,reserved:0,locations:[]});
+     const g=map.get(r.item);if(!g.itemId&&r.itemId)g.itemId=r.itemId;g.qty+=r.qty;g.locations.push(r);
    });
    [...map.values()].forEach(g=>g.reserved=window.__MCC_LIVE_BANK__?g.locations.reduce((n,r)=>n+(Number(r.reserved)||0),0):activeReservations(g.item).reduce((n,r)=>n+r.qty,0));
    return [...map.values()].sort((a,b)=>a.item.localeCompare(b.item));
@@ -2234,7 +2287,7 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
      const reservations=activeReservations(g.item);
      return `<div class="bankItem${isOpen?" open":""}">
        <div class="bankItemTop" role="button" tabindex="0" onclick="window.bankToggleItem('${key}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();window.bankToggleItem('${key}')}">
-         <span class="bankItemNameWrap"><span class="bankChevron">${isOpen?"▾":"▸"}</span><span class="bankItemName">${esc(g.item)}</span></span>
+         <span class="bankItemNameWrap"><span class="bankChevron">${isOpen?"▾":"▸"}</span><span class="bankItemName">${renderItemLink(g.itemId,g.item)}</span></span>
          <span><span class="xSub">TOTAL</span><b class="bankNum">${g.qty}</b></span>
          <span><span class="xSub">AVAILABLE</span><b class="bankNum">${g.qty-g.reserved}</b></span>
          <span><span class="xSub">RESERVED</span>${g.reserved?`<button class="bankReservedBtn" type="button" onclick="event.stopPropagation();window.bankToggleReservations('${key}')">${g.reserved}</button>`:`<b class="bankReserved">0</b>`}</span>
@@ -2263,7 +2316,7 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
      const cancel=(r.status==="pending"||r.status==="approved")?`<button class="xCancelBtn" style="padding:3px 6px;margin-left:5px" onclick="window.bankCancelRequest('${r.id}')">Cancel</button>`:"";
      const receive=r.status==="gave"?`<button class="bankReceiveBtn" style="margin-left:5px" onclick="window.bankReceive('${r.id}')">✓ RECEIVED</button>`:"";
      const effect=r.status==="pending"?"Waiting for manager • does NOT reserve stock":r.status==="approved"?"Reserved for you":r.status==="preparing"?"Manager is preparing handoff":r.status==="gave"?"Manager marked Gave • confirm only after you actually receive it":"";
-     return `<div class="bankRequest"><b>${esc(r.character)}</b> requests <b>${r.qty} × ${esc(r.item)}</b>
+     return `<div class="bankRequest"><b>${esc(r.character)}</b> requests <b>${r.qty} × ${renderItemLink(null,r.item)}</b>
        ${r.note?`<div class="xSub">${esc(r.note)}</div>`:""}
        <div style="margin-top:4px"><span class="bankStatus ${r.status}">${statusLabel(r.status)}</span></div>
        <div class="xSub" style="margin-top:5px">${effect}${cancel}${receive}</div></div>`;
@@ -2290,7 +2343,7 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
      }else if(r.status==="gave"){
        controls=`<span class="xSub">Waiting for ${esc(r.character)} to confirm receipt. Reservation stays locked.</span>`;
      }
-     return `<div class="bankQueueCard"><div class="bankQueueTop"><div><b>${esc(r.character)}</b> — ${r.qty} × <b>${esc(r.item)}</b>${r.source?`<div class="xSub">Source: ${esc(r.source)}</div>`:""}</div><span class="bankStatus ${r.status}">${statusLabel(r.status)}</span></div>
+     return `<div class="bankQueueCard"><div class="bankQueueTop"><div><b>${esc(r.character)}</b> — ${r.qty} × <b>${renderItemLink(null,r.item)}</b>${r.source?`<div class="xSub">Source: ${esc(r.source)}</div>`:""}</div><span class="bankStatus ${r.status}">${statusLabel(r.status)}</span></div>
        ${r.note?`<div class="xSub" style="margin-top:4px">${esc(r.note)}</div>`:""}
        <div class="bankQueueActions">${controls}</div></div>`;
    }).join(""):`<div class="bankEmpty">No active requests.</div>`;
@@ -2755,4 +2808,31 @@ document.addEventListener('DOMContentLoaded',()=>{
  charName?.addEventListener('input',mccQueueAutosave);raidMode?.addEventListener('change',mccQueueAutosave);profile?.addEventListener('change',()=>setTimeout(mccQueueAutosave,0));document.getElementById('mccRaidPrepSelector')?.addEventListener('change',()=>setTimeout(mccQueueAutosave,0));
  window.addEventListener('beforeunload',()=>{clearTimeout(MCC_V56_TIMER);mccSaveActive()});
 });
-</script>\n</body></html>
+</script>\n
+<script id="mcc-classic-era-tooltip-cleanup">
+(function(){
+  function cleanWowheadRealmBadges(root){
+    const scope=root && root.querySelectorAll ? root : document;
+    const candidates=scope.querySelectorAll('#wowhead-tooltip *, .wowhead-tooltip *');
+    for(const el of candidates){
+      if(el.children.length) continue;
+      const t=(el.textContent||'').trim();
+      if(/^SoD\s+Phase\s+\d+$/i.test(t) || /^Season of Discovery(?:\s+Phase\s+\d+)?$/i.test(t)){
+        el.style.display='none';
+      }
+    }
+  }
+  const obs=new MutationObserver(muts=>{
+    for(const m of muts){
+      for(const n of m.addedNodes){
+        if(n.nodeType===1) cleanWowheadRealmBadges(n);
+      }
+    }
+    cleanWowheadRealmBadges(document);
+  });
+  if(document.documentElement) obs.observe(document.documentElement,{childList:true,subtree:true});
+  document.addEventListener('mouseover',()=>cleanWowheadRealmBadges(document),true);
+})();
+</script>
+
+</body></html>
