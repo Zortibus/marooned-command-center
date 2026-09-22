@@ -218,7 +218,7 @@
 .bankEmpty{padding:24px;text-align:center;border:1px dashed #31536a;border-radius:9px;color:#d7e7f2;background:#091824}
 
 
-/* MCC v56 • LIVE — production Contributions workspace */
+/* MCC v56.1 • LIVE — production Contributions workspace */
 #guildBankPrototype .gbContribWorkspace{padding:0;border:0;background:transparent}
 .gbContribGrid{display:grid;grid-template-columns:minmax(380px,.8fr) minmax(520px,1.2fr);gap:14px;align-items:start}
 .gbContributionEntry,.gbContributionHistoryPane{margin:0!important}
@@ -273,7 +273,7 @@
 #guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankSelected{color:#73d0f5!important}
 </style>
 <style id="mcc-v27-compact-density">
-/* MCC v56 • LIVE — compact dashboard density */
+/* MCC v56.1 • LIVE — compact dashboard density */
 .guild-bank-shell, .gb-shell, #guildBankApp { font-size: 14px; }
 .guild-bank-shell input, .guild-bank-shell select, .guild-bank-shell button,
 .gb-shell input, .gb-shell select, .gb-shell button,
@@ -1217,6 +1217,16 @@ const whTooltips={colorLinks:false,iconizeLinks:false,renameLinks:false};
 }
 </style>
 
+
+<style id="mcc-v56-1-storage-remove-style">
+.mccStorageSelectRow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.mccStorageSelectRow #initialStockLocation{width:100%}
+.mccDangerBtn{border-color:#75434a!important;color:#ffb5bd!important;background:#241419!important;white-space:nowrap}
+.mccDangerBtn:hover{border-color:#b85b67!important;background:#32191f!important}
+.mccDangerBtn:disabled{opacity:.45!important;cursor:not-allowed}
+@media(max-width:700px){.mccStorageSelectRow{grid-template-columns:1fr}.mccDangerBtn{width:100%}}
+</style>
+
 </head><body>
 <div class="mccCenteredGlobalNav" id="mccGlobalNav"><button class="active" id="mccHomeTab" onclick="mccShowMain()">⚔ Marooned Command Center</button><button id="mccReadmeTab" onclick="mccShowReadme()">📖 README / Start Here</button></div>
 <section id="mccReadme">
@@ -1704,7 +1714,10 @@ if(window.__SAVED__){
 </div>
 <div class="bankMsg" id="locationSetupMsg"></div>
 <hr style="border:0;border-top:1px solid #294055;margin:12px 0"/>
+<div class="mccStorageSelectRow">
 <select id="initialStockLocation"><option value="">Loading storage locations…</option></select>
+<button id="retireStorageLocation" class="mccDangerBtn" type="button">Remove Storage Character</button>
+</div>
 <div id="initialRows"></div>
 <div class="bankActions">
 <button id="addInitialRow" type="button">+ Add Another Item</button>
@@ -2100,6 +2113,35 @@ async function setupStorageSetup(){
  rows.appendChild(initialRow());
  await refreshStorageLocations();
  document.getElementById("addInitialRow").onclick=()=>rows.appendChild(initialRow());
+
+ const retireBtn=document.getElementById("retireStorageLocation");
+ if(retireBtn)retireBtn.onclick=async()=>{
+   const select=document.getElementById("initialStockLocation");
+   const location=select?.value||"";
+   const name=select?.selectedOptions?.[0]?.textContent?.trim()||"this storage character";
+   const msg=document.getElementById("initialStockMsg");
+   if(!location){msg.textContent="Select a storage character to remove.";return;}
+   try{
+     retireBtn.disabled=true;
+     const {data:stock,error:stockError}=await xdb.from("guild_bank_inventory").select("quantity").eq("location_id",location);
+     if(stockError)throw stockError;
+     const units=(stock||[]).reduce((n,r)=>n+Math.max(0,Number(r.quantity)||0),0);
+     if(units>0){
+       msg.textContent=`Cannot remove ${name}: it still holds ${units} guild-bank unit${units===1?"":"s"}. Move/remove that inventory first.`;
+       return;
+     }
+     if(!confirm(`Remove ${name} as an active Guild Bank storage character?\n\nThis retires the location from MCC; it does not erase contribution/history records.`))return;
+     const {data:retired,error}=await xdb.rpc("guild_bank_retire_location",{p_location_id:location,p_operation_key:realUuid()});
+     if(error)throw error;
+     msg.textContent=`✓ Removed storage character: ${retired?.name||name}. Historical records were preserved.`;
+     await refreshStorageLocations();
+     if(typeof donationRefresh==="function")await donationRefresh();
+     if(window.__MCC_RELOAD_LIVE_BANK__)await window.__MCC_RELOAD_LIVE_BANK__();
+   }catch(e){
+     msg.textContent=`Could not remove storage character: ${e?.message||String(e)}`;
+   }finally{retireBtn.disabled=false;}
+ };
+
  document.getElementById("addRealLocation").onclick=async()=>{
    const name=document.getElementById("newLocationName").value.trim(),category=document.getElementById("newLocationCategory").value.trim(),note=document.getElementById("newLocationNote").value.trim()||null;
    const msg=document.getElementById("locationSetupMsg");
