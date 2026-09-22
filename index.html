@@ -1314,7 +1314,7 @@ function render(){
   else if(need===0){status="READY";cls="ready"}
   else if((+x.current||0)>0){status="LOW";cls="low"} else {status="FARM";cls="farm"}
   let tr=document.createElement('tr');
-  tr.innerHTML=`<td><b>${renderItemLink(null,x.name)}</b><div><select class="mode" onchange="setMode(${i},this.value)"><option value="required"${x.mode==="required"?" selected":""}>Required</option><option value="optional"${x.mode==="optional"?" selected":""}>Optional</option><option value="off"${x.mode==="off"?" selected":""}>Don't Track</option></select></div></td><td><input type="number" min="0" inputmode="numeric" value="${x.current||0}" onfocus="this.select()" onchange="setCurrent(${i},this.value)" aria-label="Current quantity for ${esc(x.name)}"></td><td><input class="goal" type="number" min="0" inputmode="numeric" value="${x.goal}" onfocus="this.select()" onchange="setGoal(${i},this.value)" aria-label="Goal quantity for ${esc(x.name)}"></td><td>${x.mode==="off"?"—":need}</td><td><span class="pill ${cls}">${status}</span></td><td class="mat">${esc(x.recipe||"Custom item")}</td>`;
+  tr.innerHTML=`<td><b>${renderItemLink(null,x.name)}</b><div><select class="mode" onchange="setMode(${i},this.value)"><option value="required"${x.mode==="required"?" selected":""}>Required</option><option value="optional"${x.mode==="optional"?" selected":""}>Optional</option><option value="off"${x.mode==="off"?" selected":""}>Don't Track</option></select></div></td><td><input type="number" min="0" inputmode="numeric" value="${x.current||0}" onfocus="this.select()" onchange="setCurrent(${i},this.value)" aria-label="Current quantity for ${esc(x.name)}"></td><td><input class="goal" type="number" min="0" inputmode="numeric" value="${x.goal}" onfocus="this.select()" onchange="setGoal(${i},this.value)" aria-label="Goal quantity for ${esc(x.name)}"></td><td>${x.mode==="off"?"—":need}</td><td><span class="pill ${cls}">${status}</span></td><td class="mat"><div style="display:flex;align-items:center;gap:10px;justify-content:space-between"><span>${esc(x.recipe||"Custom item")}</span><button type="button" title="Remove item from my tracker" aria-label="Remove ${esc(x.name)} from this tracker" onclick="removeTrackerItem(${i})" style="flex:0 0 28px;width:28px;height:28px;border:1px solid #8f3d3d;background:#2a1114;color:#ff9b9b;border-radius:7px;padding:0;font-size:16px;line-height:26px;font-weight:800;cursor:pointer;text-align:center">✕</button></div></td>`;
   body.appendChild(tr);
  });
  updateStats();
@@ -1323,6 +1323,14 @@ function render(){
 function setCurrent(i,v){rows[i].current=Math.max(0,+v||0);render();mccQueueAutosave()}
 function setGoal(i,v){rows[i].goal=Math.max(0,+v||0);render();mccQueueAutosave()}
 function setMode(i,v){rows[i].mode=v;render();mccQueueAutosave()}
+function removeTrackerItem(i){
+ const x=rows[i]; if(!x)return;
+ if(!confirm(`Remove ${x.name} from your personal tracker? You can add it again later.`))return;
+ rows.splice(i,1);
+ render();
+ populateCatalogItems(document.getElementById("itemSearch")?.value||"");
+ mccQueueAutosave();
+}
 
 // Safe bridge for the optional Ganggrel Exchange.
 // Returns only tracker item/status/quantity candidates; it does not publish anything.
@@ -1405,7 +1413,7 @@ function addCatalogItem(){
  // Preserve special tracker recipe/mat data when known; otherwise create a clean generic tracker row.
  let found=CATALOG.find(x=>x.name===n);
  let c=found?clone(found):{name:n,recipe:"Custom Classic Era item",mats:{}};
- c.goal=10;c.current=0;c.mode="optional";rows.push(c);render();populateCatalogItems(search?.value||"");mccQueueAutosave();
+ c.goal=10;c.current=0;c.mode="optional";c._mccCustom=true;rows.push(c);render();populateCatalogItems(search?.value||"");mccQueueAutosave();
 }
 function importSavedTracker(file){
  const status=document.getElementById("importStatus");
