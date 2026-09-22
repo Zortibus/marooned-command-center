@@ -3081,4 +3081,39 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
+
+<script id="mcc-v56-1-recipe-migration">
+(function () {
+  const fixes = [
+    [/Sorrowmoss/g, "Plaguebloom"],
+    [/Black Lotus \+ Gromsblood \+ Stonescale Oil; Alchemy Lab/g,
+      "30 Gromsblood + 10 Stonescale Oil + 1 Black Lotus + 1 Crystal Vial; Alchemy Lab"],
+    [/Black Lotus \+ caster herbs; Alchemy Lab/g,
+      "30 Dreamfoil + 10 Mountain Silversage + 1 Black Lotus + 1 Crystal Vial; Alchemy Lab"],
+    [/Black Lotus \+ mana herbs; Alchemy Lab/g,
+      "30 Dreamfoil + 10 Icecap + 1 Black Lotus + 1 Crystal Vial; Alchemy Lab"]
+  ];
+
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key) continue;
+      const original = localStorage.getItem(key);
+      if (typeof original !== "string") continue;
+
+      let repaired = original;
+      for (const [pattern, replacement] of fixes) {
+        repaired = repaired.replace(pattern, replacement);
+      }
+
+      if (repaired !== original) {
+        localStorage.setItem(key, repaired);
+      }
+    }
+  } catch (err) {
+    console.warn("MCC legacy recipe migration skipped:", err);
+  }
+})();
+</script>
+
 </body></html>
