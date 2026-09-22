@@ -1165,6 +1165,33 @@ const whTooltips={colorLinks:false,iconizeLinks:false,renameLinks:false};
 #guildBankPrototype .bankHead h2{color:#FFE39B!important}
 </style>
 
+<style id="mcc-farm-checklist-v1">
+#raw.rawgrid{gap:7px 12px;align-items:start}.mccFarmMat{min-width:0}.mccFarmCheck{display:flex;align-items:center;gap:6px;cursor:pointer;line-height:1.15}.mccFarmCheck input{width:14px;height:14px;margin:0;accent-color:#62c978;flex:0 0 auto;cursor:pointer}.mccFarmName{color:#f2f7fb}.mccFarmSource{margin:2px 0 0 20px;color:#71889a;font-size:9.5px;line-height:1.2}.mccFarmMat.done .mccFarmName{text-decoration:line-through;color:#687987}.mccFarmMat.done .mccFarmSource{color:#52616d}.mccFarmQty.done{color:#687987!important;text-decoration:line-through}.mccFarmResetWrap{margin-top:5px}.mccFarmReset{border:0;background:none;padding:2px 0;color:#71889a;font-size:10px;cursor:pointer;text-decoration:underline}.mccFarmReset:hover{color:#cbd8e2}
+</style>
+<style id="mcc-farm-completed-v2">
+#raw .mccFarmMat.done .mccFarmName{color:#667783!important;text-decoration:line-through;text-decoration-thickness:1px}
+#raw .mccFarmMat.done .mccFarmSource{color:#4f606c!important}
+#raw .mccFarmQty.done{color:#667783!important;text-decoration:line-through;text-decoration-thickness:1px}
+#raw .mccFarmMat.done input[type="checkbox"]{accent-color:#55c878}
+</style>
+<style id="mcc-farm-checked-direct-v5">
+#raw .mccFarmMat:has(input[type="checkbox"]:checked) .mccFarmName{
+ color:#667783!important;
+ text-decoration:line-through!important;
+ text-decoration-thickness:1px!important;
+}
+#raw .mccFarmMat:has(input[type="checkbox"]:checked) .mccFarmSource{
+ color:#4f606c!important;
+}
+#raw .mccFarmMat:has(input[type="checkbox"]:checked) + .mccFarmQty{
+ color:#667783!important;
+ text-decoration:line-through!important;
+ text-decoration-thickness:1px!important;
+}
+#raw .mccFarmMat:has(input[type="checkbox"]:checked) input[type="checkbox"]{
+ accent-color:#55c878!important;
+}
+</style>
 </head><body>
 <div class="mccCenteredGlobalNav" id="mccGlobalNav"><button class="active" id="mccHomeTab" onclick="mccShowMain()">⚔ Marooned Command Center</button><button id="mccReadmeTab" onclick="mccShowReadme()">📖 README / Start Here</button></div>
 <section id="mccReadme">
@@ -1411,6 +1438,17 @@ function trackerDisplayRows(){
  });
  return indexed;
 }
+const MCC_FARM_SOURCES={"Arthas' Tears":"W. Plaguelands / E. Plaguelands / Felwood","Basilisk Brain":"Blasted Lands — basilisks","Black Lotus":"Burning Steppes / Winterspring / EPL / Silithus","Blasted Boar Lung":"Blasted Lands — boars","Blindweed":"Swamp of Sorrows / Un'Goro","Bruiseweed":"Hillsbrad / Stonetalon / Ashenvale","Crystal Vial":"Vendor","Dream Dust":"Disenchant level 41–50 gear","Dreamfoil":"Un'Goro / Azshara / EPL / Burning Steppes / Silithus / Felwood","Elemental Earth":"Badlands / Arathi — earth elementals","Elemental Fire":"Arathi / Un'Goro — fire elementals","Elemental Water":"Arathi Highlands — water elementals","Fadeleaf":"Arathi / Swamp of Sorrows / STV / Hinterlands","Fire Oil":"Craft — Firefin Snapper","Firebloom":"Tanaris / Blasted Lands / Searing Gorge / Badlands","Ghost Mushroom":"Hinterlands / Desolace-Maraudon / DM East","Golden Sansam":"Un'Goro / Azshara / EPL / Burning Steppes / Silithus / Felwood","Goldthorn":"STV / Arathi / Swamp of Sorrows / Hinterlands","Grave Moss":"Duskwood / Desolace / Wetlands","Gromsblood":"Felwood / Desolace / Blasted Lands","Icecap":"Winterspring","Imbued Vial":"Vendor","Khadgar's Whisker":"STV / Arathi / Swamp of Sorrows / Hinterlands","Large Brilliant Shard":"Disenchant high-level blue gear","Large Venom Sac":"Wetlands / Hillsbrad / Duskwood — spiders","Leaded Vial":"Vendor","Mountain Silversage":"Winterspring / Un'Goro / Azshara / Burning Steppes","Plaguebloom":"EPL / WPL / Felwood","Purple Lotus":"Azshara / Hinterlands / Tanaris / STV","Raw Nightfin Snapper":"Night fishing — Feralas / Moonglade","Refreshing Spring Water":"Vendor","Runecloth":"High-level humanoids — Blackrock / Plaguelands","Sandworm Meat":"Silithus — Dredge Strikers/Crushers","Scorpok Pincer":"Blasted Lands — scorpoks","Shadow Oil":"Craft — Fadeleaf + Grave Moss","Snickerfang Jowl":"Blasted Lands — hyenas","Soothing Spices":"Cooking vendor","Stonescale Oil":"Fish Eels — Azshara / Tanaris / Feralas / STV","Sungrass":"Azshara / Hinterlands / Blasted Lands / EPL / Feralas","Swiftthistle":"Gather from Briarthorn / Mageroyal","Vulture Gizzard":"Blasted Lands — vultures","Wild Steelbloom":"STV / Arathi / Hillsbrad","Winter Squid":"Seasonal fishing — Azshara / Tanaris","Wintersbite":"Alterac Mountains"};
+function mccFarmCheckKey(){
+ const raid=(typeof ACTIVE_RAID!=="undefined" && ACTIVE_RAID)?ACTIVE_RAID:"raid";
+ const prof=(typeof profile!=="undefined" && profile && profile.value)?profile.value:"profile";
+ return "marooned.mcc.farmchecks.v1."+String(raid)+"."+String(prof);
+}
+function mccFarmChecks(){try{return JSON.parse(localStorage.getItem(mccFarmCheckKey())||"{}")||{}}catch{return {}}}
+function mccSetFarmCheck(name,checked){const s=mccFarmChecks();if(checked)s[name]=true;else delete s[name];localStorage.setItem(mccFarmCheckKey(),JSON.stringify(s));updateStats();}
+function mccResetFarmChecks(){localStorage.removeItem(mccFarmCheckKey());updateStats();}
+window.mccSetFarmCheck=mccSetFarmCheck;window.mccResetFarmChecks=mccResetFarmChecks;
+
 function render(){
  const body=document.getElementById('rows'); body.innerHTML='';
  const sortSel=document.getElementById("trackerSort"); if(sortSel)sortSel.value=TRACKER_SORT;
@@ -1462,8 +1500,9 @@ function updateStats(){
  farm.innerHTML=farms.length?farms.map(x=>`<div class="farmitem"><b>${renderItemLink(null,x.name)}</b> — need <b class="mccNeedPop">${(+x.goal||0)-(+x.current||0)}</b><div class="mat">${x.mode==="optional"?"Optional • ":""}${mccGoldNumbers(x.recipe)}</div></div>`).join(""):'<b style="color:var(--green)">All tracked items are at target.</b>';
  let totals={};
  farms.forEach(x=>{let shortage=(+x.goal||0)-(+x.current||0);Object.entries(x.mats||{}).forEach(([m,q])=>totals[m]=(totals[m]||0)+q*shortage)});
+ let checks=mccFarmChecks();
  let ent=Object.entries(totals).sort((a,b)=>a[0].localeCompare(b[0]));
- raw.innerHTML=ent.length?ent.map(([m,q])=>`<div>${esc(m)}</div><div class="qty mccQtyPop">${q}</div>`).join(""):'<div class="note">No calculated raw-material shortages.</div>';
+ raw.innerHTML=ent.length?ent.map(([m,q])=>{const done=!!checks[m],src=MCC_FARM_SOURCES[m]||"Source varies — check item tooltip";return `<div class="mccFarmMat${done?" done":""}"><label class="mccFarmCheck"><input type="checkbox" ${done?"checked":""} onchange="mccSetFarmCheck(${JSON.stringify(m)},this.checked)"><span class="mccFarmName">${esc(m)}</span></label><div class="mccFarmSource">${esc(src)}</div></div><div class="qty mccQtyPop mccFarmQty${done?" done":""}">${q}</div>`;}).join("")+`<div class="mccFarmResetWrap"><button type="button" class="mccFarmReset" onclick="mccResetFarmChecks()">Reset checks</button></div><div></div>`:'<div class="note">No calculated raw-material shortages.</div>';
 }
 function populateCatalogItems(filter=""){
  const sel=document.getElementById("addItem");
