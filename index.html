@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 
 <html><head><script id="marooned-saved-state">window.__SAVED__=null;</script><meta charset="utf-8"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>v56.3.3 TOOLTIP TEST • MAROONED — Command Center</title>
+<title>MAROONED — Command Center</title>
 <style>
 :root{--bg:#05090e;--panel:#0b131d;--panel2:#101b28;--line:#294e70;--gold:#d6b65b;--text:#f2f5f7;--muted:#aab8c6;--green:#74d69a;--red:#ff7d86;--yellow:#e8c85c;--blue:#75c9ff;--ice:#8fd7ff}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 72% 0,#102b45 0,#07111b 34%,#030609 100%);color:var(--text);font:15px/1.45 Segoe UI,Arial,sans-serif}.shell{max-width:1280px;margin:auto;padding:20px}
@@ -218,7 +218,7 @@
 .bankEmpty{padding:24px;text-align:center;border:1px dashed #31536a;border-radius:9px;color:#d7e7f2;background:#091824}
 
 
-/* MCC v56 • CHARACTER AUTOSAVE TEST — production Contributions workspace */
+/* MCC v56 • LIVE — production Contributions workspace */
 #guildBankPrototype .gbContribWorkspace{padding:0;border:0;background:transparent}
 .gbContribGrid{display:grid;grid-template-columns:minmax(380px,.8fr) minmax(520px,1.2fr);gap:14px;align-items:start}
 .gbContributionEntry,.gbContributionHistoryPane{margin:0!important}
@@ -235,9 +235,45 @@
 
 .mcc-item-link{color:inherit;text-decoration:none;border-bottom:1px dotted rgba(124,207,255,.42);cursor:help}
 .mcc-item-link:hover,.mcc-item-link:focus{color:#bfe9ff;border-bottom-color:#bfe9ff;text-decoration:none}
+
+/* MCC v56.4 Storage Stalls TEST */
+.gbBrowseMode{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.gbBrowseMode button{padding:7px 12px}.gbBrowseMode button.active{border-color:#d6a84b;color:#ffe09a;background:#18212a}.gbStorageTools{display:none;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}.gbStorageTools.active{display:flex}.gbStorageSearch{min-width:260px;flex:1}.gbStorageGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-top:10px}.gbStorageCard{border:1px solid #2d424c;background:#0b151b;border-radius:10px;padding:14px}.gbStorageCard h4{margin:0 0 4px;color:#f0c96a;font-size:18px}.gbStorageType{color:#8fcfff;font-weight:700}.gbStorageMeta{font-size:12px;color:#9fb0bd;margin:5px 0 10px}.gbStorageOpen{width:100%}.gbStallHead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px}.gbStallHead h4{margin:0;color:#f0c96a;font-size:20px}.gbStallRows{border:1px solid #2d424c;border-radius:9px;overflow:hidden}.gbStallRow{display:grid;grid-template-columns:minmax(220px,1fr) 80px 90px 90px 105px;gap:8px;align-items:center;padding:9px 11px;border-bottom:1px solid #20333e;background:#0b151b}.gbStallRow:last-child{border-bottom:0}.gbStallHdr{font-size:11px;color:#8498a6;font-weight:800;background:#101e27}.gbStallNum{text-align:center}.gbStallReq{text-align:right}.gbStorageEmpty{padding:20px;text-align:center;color:#9fb0bd}@media(max-width:760px){.gbStallHdr{display:none}.gbStallRow{grid-template-columns:1fr auto}.gbStallNum{display:none}.gbStallReq{grid-column:2;grid-row:1}.gbStorageSearch{min-width:100%}}
+
+.gbStorageTools{padding:10px;border:1px solid #315b78;border-radius:9px;background:#0b1b25}.gbStorageSearch{background:#10283b!important;border:1px solid #4b86aa!important;color:#fff!important;padding:9px 11px!important}.gbStorageTypeFilter{background:#10283b;border:1px solid #4b86aa;color:#e8f6ff;border-radius:7px;padding:9px 10px;min-width:190px}.gbBrowseHint{padding:20px;text-align:center;border:1px dashed #31536a;border-radius:9px;color:#b9cbd8;background:#091824}.gbBrowseHint b{color:#8fdcff}.gbShowAllBtn{white-space:nowrap}.gbRequestWorkspace.gbRequestAttention{animation:gbRequestPulse 1.35s ease-out}
+@keyframes gbRequestPulse{0%{box-shadow:0 0 0 0 rgba(77,208,255,.75);border-color:#4dd0ff}55%{box-shadow:0 0 0 5px rgba(77,208,255,.16);border-color:#4dd0ff}100%{box-shadow:none}}
+/* Storage setup readability: neutral dark controls, bright text, cyan used as an accent instead of a wall. */
+#storageSetupPanel input,#storageSetupPanel select{background:#09151d!important;border:1px solid #355063!important;color:#f1f6f9!important}
+#storageSetupPanel input::placeholder{color:#aebdc7!important;opacity:1}
+#storageSetupPanel input:focus,#storageSetupPanel select:focus{border-color:#66c9f2!important;box-shadow:0 0 0 2px rgba(102,201,242,.12)!important;outline:none}
+#newLocationCategory{font-weight:800;color:#dff4ff!important}
+#locationSetupMsg{color:#dce8ee!important;font-weight:700}
+
+/* MCC v56.4.1 • Manager visual hierarchy — PAINT ONLY, no logic changes */
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace h2,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace h3,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace h4,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace summary strong{color:#f0c96a!important}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace label{color:#e2c777!important;font-weight:800}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace input,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace select,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace textarea{background:#09151d!important;border:1px solid #3b505d!important;color:#f3f6f8!important;box-shadow:none!important}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace input::placeholder,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace textarea::placeholder{color:#9ba9b2!important;opacity:1}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace input:focus,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace select:focus,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace textarea:focus{border-color:#66c9f2!important;box-shadow:0 0 0 2px rgba(102,201,242,.12)!important;outline:none}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane>h3{background:#151c20!important;border-bottom-color:#725e2b!important;color:#f0c96a!important}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane>h3::after{background:#d79a16!important}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace details.bankPane{background:linear-gradient(180deg,#0c171c,#091217)!important;border-color:#394950!important}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .tiny,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .note,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankFlowNote{color:#aab5bc!important}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .gbLiveStatus,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankSelected{color:#73d0f5!important}
 </style>
 <style id="mcc-v27-compact-density">
-/* MCC v56 • CHARACTER AUTOSAVE TEST — compact dashboard density */
+/* MCC v56 • LIVE — compact dashboard density */
 .guild-bank-shell, .gb-shell, #guildBankApp { font-size: 14px; }
 .guild-bank-shell input, .guild-bank-shell select, .guild-bank-shell button,
 .gb-shell input, .gb-shell select, .gb-shell button,
@@ -326,7 +362,7 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 <style id="mcc-v28-true-compact">
-/* MCC v56 • CHARACTER AUTOSAVE TEST — actual density surgery. Keep readable controls; remove empty oceans. */
+/* MCC v56 • LIVE — actual density surgery. Keep readable controls; remove empty oceans. */
 
 /* The Guild Bank tab/content area should size to content, not an old prototype minimum. */
 #mccGuildBank,
@@ -1086,6 +1122,101 @@ const whTooltips={colorLinks:false,iconizeLinks:false,renameLinks:false};
   width:auto !important;
 }
 </style>
+
+<style id="mcc-v56-4-3-live-manager-colors">
+/* v56.4.3 LIVE CANDIDATE
+   VISUAL COLOR OVERRIDE ONLY.
+   No sizing/layout/JS/Supabase/storage/request/tooltip changes.
+   Target: match the clean Marooned Guild Bank header language. */
+
+/* Important Manager hierarchy: clean MCC gold. */
+#guildBankPrototype[data-gbview="manager"] .gbViewLabel,
+#guildBankPrototype[data-gbview="manager"] #storageSetupPanel > h3,
+#guildBankPrototype[data-gbview="manager"] .bankManagerTitle h3,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane > h3 {
+  color:#f0bd43 !important;
+  text-shadow:none !important;
+}
+
+/* Keep the ORIGINAL panel/header backgrounds. Only change the little heading accent to gold. */
+#guildBankPrototype[data-gbview="manager"] #storageSetupPanel > h3::after,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane > h3::after {
+  background:#d79a16 !important;
+  box-shadow:none !important;
+}
+
+/* Inputs/search/selects: retain original dimensions and layout; only improve legibility. */
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace input,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace select,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace textarea {
+  color:#f2f5f7 !important;
+}
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace input::placeholder,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace textarea::placeholder {
+  color:#aab8c6 !important;
+  opacity:1 !important;
+}
+
+/* Cyan stays an accent/status/focus color, not the title color. */
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace input:focus,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace select:focus,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace textarea:focus {
+  border-color:#73d0f5 !important;
+  outline:none !important;
+}
+
+/* Prevent later Manager polish from repainting these headings cyan. */
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace h3 {
+  text-shadow:none !important;
+}
+</style>
+
+
+<style id="mcc-v56-4-4-no-john-deere">
+/* v56.4.4 — Guild Bank neutral-background correction.
+   COLOR ONLY. No layout, sizing, HTML, JS, Supabase, inventory, request,
+   contribution, manager, tooltip, or storage behavior changes. */
+
+/* Main Guild Bank shell: neutral MCC charcoal/black instead of green-black. */
+#guildBankPrototype.bankBox{
+  background:linear-gradient(180deg,#0a1419 0%,#071015 100%)!important;
+  border-color:#6f5a24!important;
+}
+
+/* Workspace floor beneath the navigation. */
+#guildBankPrototype .gbWorkspace,
+#guildBankPrototype .gbInventoryWorkspace{
+  background:transparent!important;
+}
+
+/* Manager workspace and its main cards: neutral, not olive/green. */
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace details.bankPane,
+#guildBankPrototype[data-gbview="manager"] #storageSetupPanel,
+#guildBankPrototype[data-gbview="manager"] .bankManager{
+  background:#0b151a!important;
+}
+
+/* Header strips inside Manager: slightly lighter neutral charcoal. */
+#guildBankPrototype[data-gbview="manager"] #storageSetupPanel > h3,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane > h3,
+#guildBankPrototype[data-gbview="manager"] .bankManagerTitle{
+  background:#101b20!important;
+}
+
+/* Keep borders neutral with the established gold hierarchy. */
+#guildBankPrototype[data-gbview="manager"] #storageSetupPanel,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace details.bankPane{
+  border-color:#33464d!important;
+}
+#guildBankPrototype[data-gbview="manager"] #storageSetupPanel > h3,
+#guildBankPrototype[data-gbview="manager"] .gbManagerWorkspace .bankPane > h3{
+  border-bottom-color:#6f5a24!important;
+}
+</style>
+
 </head><body>
 <div class="mccCenteredGlobalNav" id="mccGlobalNav"><button class="active" id="mccHomeTab" onclick="mccShowMain()">⚔ Marooned Command Center</button><button id="mccReadmeTab" onclick="mccShowReadme()">📖 README / Start Here</button></div>
 <section id="mccReadme">
@@ -1525,7 +1656,7 @@ if(window.__SAVED__){
 <section class="bankBox" id="guildBankPrototype">
 <div class="bankHead">
 <div>
-<div style="display:flex;gap:9px;align-items:center"><h2>🏦 Marooned Guild Bank</h2><span class="bankBadge">MCC v56 • CHARACTER AUTOSAVE TEST</span></div>
+<div style="display:flex;gap:9px;align-items:center"><h2>🏦 Marooned Guild Bank</h2><span class="bankBadge">MCC v56 • LIVE</span></div>
 <div class="muted">Shared guild-owned supplies • Storage characters are locations, not owners</div>
 </div>
 <div class="exchangePrivacy"><b>Live Guild Bank:</b> Inventory below is loaded from the real Marooned Guild Bank backend. Storage characters are locations, not owners.</div>
@@ -1550,7 +1681,9 @@ if(window.__SAVED__){
 <div class="bankGrid">
 <div class="bankPane gbInventoryPane">
 <h3>Guild Inventory</h3>
-<div class="muted" style="font-size:12px">Totals combine all active storage locations. Click an item for storage details; click Reserved to see why stock is held.</div>
+<div class="muted" style="font-size:12px">Totals combine all active storage locations. Browse everything at once, or step inside a storage character's stall to see exactly what is kept there.</div>
+<div class="gbBrowseMode"><button id="gbBrowseItems" class="active" type="button">📦 Browse All Items</button><button id="gbBrowseStorage" type="button">🚪 Browse Storage</button></div>
+<div class="gbStorageTools" id="gbStorageTools"><input class="gbStorageSearch" id="gbStorageSearch" placeholder="Search storage character, type, or description…"/><select class="gbStorageTypeFilter" id="gbStorageTypeFilter" aria-label="Filter storage characters by type"><option value="">All Storage Types</option><option>Consumables</option><option>Materials</option><option>Herbs</option><option>BoE Gear</option><option>Class Books</option><option>Recipes</option><option>Darkmoon Faire</option><option>Raid / Reputation</option><option>Quest / Turn-in</option><option>Miscellaneous</option></select><button class="gbShowAllBtn" id="gbShowAllStorage" type="button">Show All Storage</button><span class="gbLiveStatus" id="gbStorageCount"></span></div>
 <div class="gbInventoryTools">
 <select aria-label="Filter guild bank by category" class="gbCategoryFilter" id="gbCategoryFilter">
 <option value="">All Categories</option>
@@ -1565,7 +1698,8 @@ if(window.__SAVED__){
 <div class="muted" style="font-size:12px;margin-bottom:8px">Add a real Marooned storage character, then load the guild-owned items already sitting on that character. Initial inventory does <b>not</b> count as a member donation.<br/><span style="color:#8fcfff">Item picker:</span> searching 14,889 Classic Era database records from the uploaded Questie-X item DB. Select a result to capture its real WoW item ID and suggest a category. For real initial inventory, selecting a database result is required so duplicate/misspelled items cannot be created.</div>
 <div class="bankForm">
 <input id="newLocationName" placeholder="Storage character name — e.g. TsukiBank"/>
-<input id="newLocationNote" placeholder="Optional note"/>
+<select id="newLocationCategory" aria-label="Storage type" required><option value="">Choose Storage Type…</option><option>Consumables</option><option>Materials</option><option>Herbs</option><option>BoE Gear</option><option>Class Books</option><option>Recipes</option><option>Darkmoon Faire</option><option>Raid / Reputation</option><option>Quest / Turn-in</option><option>Miscellaneous</option></select>
+<input id="newLocationNote" placeholder="Optional description — e.g. Random BOEs for guild members"/>
 <button id="addRealLocation" type="button">+ Add Storage Character</button>
 </div>
 <div class="bankMsg" id="locationSetupMsg"></div>
@@ -1954,9 +2088,10 @@ function initialRow(item="",qty=""){
 }
 async function refreshStorageLocations(){
  const s=document.getElementById("initialStockLocation");
- const {data,error}=await xdb.from("guild_bank_locations").select("id,name,note,active").eq("active",true).order("name");
+ const {data,error}=await xdb.from("guild_bank_locations").select("id,name,category,note,active").eq("active",true).order("name");
  if(error){document.getElementById("locationSetupMsg").textContent=error.message;return;}
  const old=s.value;
+ if(window.__MCC_SET_LIVE_BANK_LOCATIONS__)window.__MCC_SET_LIVE_BANK_LOCATIONS__(data||[]);
  s.innerHTML='<option value="">Select storage character…</option>'+(data||[]).map(x=>`<option value="${x.id}">${xesc(x.name)}</option>`).join("");
  if(old&&[...s.options].some(o=>o.value===old))s.value=old;
 }
@@ -1966,11 +2101,12 @@ async function setupStorageSetup(){
  await refreshStorageLocations();
  document.getElementById("addInitialRow").onclick=()=>rows.appendChild(initialRow());
  document.getElementById("addRealLocation").onclick=async()=>{
-   const name=document.getElementById("newLocationName").value.trim(),note=document.getElementById("newLocationNote").value.trim()||null;
+   const name=document.getElementById("newLocationName").value.trim(),category=document.getElementById("newLocationCategory").value.trim(),note=document.getElementById("newLocationNote").value.trim()||null;
    const msg=document.getElementById("locationSetupMsg");
    if(!name){msg.textContent="Enter a bank alt/storage character name.";return;}
+   if(!category){msg.textContent="Choose a Storage Type for this bank alt.";return;}
    try{
-    const {data,error}=await xdb.rpc("guild_bank_add_location",{p_name:name,p_category:"Bank Alt",p_note:note,p_operation_key:realUuid()});
+    const {data,error}=await xdb.rpc("guild_bank_add_location",{p_name:name,p_category:category,p_note:note,p_operation_key:realUuid()});
     if(error)throw error;
     msg.textContent=`✓ Added storage location: ${data.name}`;
     document.getElementById("newLocationName").value="";document.getElementById("newLocationNote").value="";
@@ -2263,11 +2399,17 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
    [...map.values()].forEach(g=>g.reserved=window.__MCC_LIVE_BANK__?g.locations.reduce((n,r)=>n+(Number(r.reserved)||0),0):activeReservations(g.item).reduce((n,r)=>n+r.qty,0));
    return [...map.values()].sort((a,b)=>a.item.localeCompare(b.item));
  }
+ let liveStorageLocations=[];
+ function setLiveBankLocations(locations){
+   liveStorageLocations=(locations||[]).filter(x=>x&&x.active!==false).map(x=>({id:x.id,name:x.name,category:x.category||"Miscellaneous",note:x.note||"",active:x.active!==false}));
+   if(window.__MCC_LIVE_BANK__)render();
+ }
  function setLiveBankRows(rows){
-   fakeRows=(rows||[]).map(r=>({item:r.item_name, itemId:r.item_id||null, category:r.category||"Miscellaneous", location:r.location_name, qty:Number(r.quantity)||0, reserved:Number(r.reserved_quantity)||0}));
+   fakeRows=(rows||[]).map(r=>({item:r.item_name, itemId:r.item_id||null, category:r.category||"Miscellaneous", location:r.location_name, locationCategory:r.location_category||"Bank Alt", locationNote:r.location_note||"", qty:Number(r.quantity)||0, reserved:Number(r.reserved_quantity)||0}));
    window.__MCC_LIVE_BANK__=true;
    render();
  }
+ window.__MCC_SET_LIVE_BANK_LOCATIONS__=setLiveBankLocations;
  window.__MCC_SET_LIVE_BANK_ROWS__=setLiveBankRows;
  function addActivity(text){activity.unshift({text}); if(activity.length>30)activity.length=30}
  function statusLabel(s){return ({pending:"PENDING",approved:"APPROVED / RESERVED",preparing:"PREPARING",gave:"GAVE • AWAITING RECEIPT",received:"RECEIVED",cancelled:"CANCELLED"})[s]||s.toUpperCase()}
@@ -2279,17 +2421,48 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
    const g=grouped().find(x=>x.item.toLowerCase()===name.toLowerCase());
    selected.textContent=g?`Selected: ${g.item} • ${g.qty-g.reserved} currently available`:"Choose an item from the bank or type one below.";
  }
+ let bankBrowseMode="items", openStorageName=null, showAllItems=false, showAllStorage=false;
+ function storageGroups(){
+   const m=new Map();
+   liveStorageLocations.forEach(l=>{if(l.name&&!m.has(l.name))m.set(l.name,{name:l.name,type:l.category||"Miscellaneous",note:l.note||"",rows:[],units:0,reserved:0});});
+   fakeRows.forEach(r=>{if(!m.has(r.location))m.set(r.location,{name:r.location,type:r.locationCategory||"",note:r.locationNote||"",rows:[],units:0,reserved:0});const g=m.get(r.location);g.rows.push(r);g.units+=r.qty;g.reserved+=r.reserved||0;});
+   for(const g of m.values()){if(!g.type||g.type==="Bank Alt"||g.type==="Gear & Misc."){const cats=[...new Set(g.rows.map(r=>r.category).filter(Boolean))];if(cats.length===1)g.type=cats[0];else if(cats.includes("BoE Gear"))g.type="BoE Gear";else g.type="Miscellaneous";}}
+   return [...m.values()].sort((a,b)=>a.name.localeCompare(b.name));
+ }
+ function renderStorageBrowse(){
+   const box=document.getElementById("bankInventory"), tools=document.getElementById("gbStorageTools"), invTools=document.querySelector(".gbInventoryTools");
+   if(bankBrowseMode!=="storage"){tools?.classList.remove("active");if(invTools)invTools.style.display="";return false;}
+   tools?.classList.add("active");if(invTools)invTools.style.display="none";
+   const search=document.getElementById("gbStorageSearch"), typeFilter=document.getElementById("gbStorageTypeFilter");
+   const q=(search?.value||"").trim().toLowerCase(), type=(typeFilter?.value||"").trim(), groups=storageGroups();
+   const count=document.getElementById("gbStorageCount");if(count)count.textContent=`${groups.length} active storage character${groups.length===1?"":"s"}`;
+   if(openStorageName){
+     const g=groups.find(x=>x.name===openStorageName);if(!g){openStorageName=null;return renderStorageBrowse();}
+     if(search)search.placeholder=`Search ${g.name}'s inventory…`;
+     if(typeFilter)typeFilter.style.display="none";const showBtn=document.getElementById("gbShowAllStorage");if(showBtn)showBtn.style.display="none";
+     const rows=g.rows.filter(r=>!q||`${r.item} ${r.category}`.toLowerCase().includes(q)).sort((a,b)=>a.item.localeCompare(b.item));
+     box.innerHTML=`<div class="gbStallHead"><button type="button" onclick="window.bankCloseStorage()">← All Storage</button><h4>📦 ${esc(g.name)}</h4><span class="gbStorageType">${esc(g.type)}</span>${g.note?`<span class="xSub">${esc(g.note)}</span>`:""}</div><div class="gbStallRows"><div class="gbStallRow gbStallHdr"><span>ITEM</span><span class="gbStallNum">TOTAL</span><span class="gbStallNum">AVAILABLE</span><span class="gbStallNum">RESERVED</span><span></span></div>${rows.map(r=>{const key=encodeURIComponent(r.item),res=Number(r.reserved)||0;return `<div class="gbStallRow"><span>${renderItemLink(r.itemId,r.item)} <span class="xSub">${esc(r.category||"")}</span></span><b class="gbStallNum">${r.qty}</b><b class="gbStallNum">${r.qty-res}</b><b class="gbStallNum">${res}</b><span class="gbStallReq"><button class="bankRequestBtn" type="button" onclick="window.bankSelectRequest('${key}')">Request</button></span></div>`}).join("")||`<div class="gbStorageEmpty">${g.rows.length?`No items in ${esc(g.name)} match this search.`:`${esc(g.name)} is currently empty.`}</div>`}</div>`;
+   }else{
+     if(search)search.placeholder="Search storage character, type, or description…";if(typeFilter)typeFilter.style.display="";const showBtn=document.getElementById("gbShowAllStorage");if(showBtn)showBtn.style.display="";
+     const hasFilter=!!q||!!type;const filtered=groups.filter(g=>(!q||`${g.name} ${g.type} ${g.note}`.toLowerCase().includes(q))&&(!type||g.type===type));
+     if(!hasFilter&&!showAllStorage){box.innerHTML=`<div class="gbBrowseHint"><b>Find a storage stall</b><br>Search by bank-alt name, description, or choose a Storage Type. Nothing is listed until you search.<br><span class="xSub">Use “Show All Storage” only when you actually want the full stable.</span></div>`;}
+     else box.innerHTML=filtered.length?`<div class="gbStorageGrid">${filtered.map(g=>`<article class="gbStorageCard"><h4>📦 ${esc(g.name)}</h4><div class="gbStorageType">${esc(g.type)}</div><div class="gbStorageMeta">${g.rows.length} unique item${g.rows.length===1?"":"s"} • ${g.units} total units${g.reserved?` • ${g.reserved} reserved`:""}</div>${g.note?`<div class="xSub" style="margin-bottom:10px">${esc(g.note)}</div>`:""}<button class="gbStorageOpen" type="button" onclick="window.bankOpenStorage('${encodeURIComponent(g.name)}')">Open Storage</button></article>`).join("")}</div>`:`<div class="gbStorageEmpty">No storage characters match this search/filter.</div>`;
+   }
+   return true;
+ }
+ window.bankOpenStorage=encoded=>{openStorageName=decodeURIComponent(encoded);const s=document.getElementById("gbStorageSearch");if(s)s.value="";render()};
+ window.bankCloseStorage=()=>{openStorageName=null;showAllStorage=false;const s=document.getElementById("gbStorageSearch");if(s)s.value="";const t=document.getElementById("gbStorageTypeFilter");if(t)t.value="";render()};
  function render(){
+   const all=grouped(), total=all.reduce((n,g)=>n+g.qty,0), reserved=all.reduce((n,g)=>n+g.reserved,0);
+   document.getElementById("bankUnique").textContent=all.length;document.getElementById("bankTotal").textContent=total;document.getElementById("bankAvailable").textContent=total-reserved;document.getElementById("bankReserved").textContent=reserved;
+   if(renderStorageBrowse()){renderRequests();renderManager();renderActivity();refreshSelected();return;}
    const q=(document.getElementById("bankSearch")?.value||"").trim().toLowerCase();
-   const all=grouped(), cat=(document.getElementById("gbCategoryFilter")?.value||"").trim();
+   const cat=(document.getElementById("gbCategoryFilter")?.value||"").trim();
    const rows=all.filter(g=>(!q||g.item.toLowerCase().includes(q))&&(!cat||g.locations.some(r=>r.category===cat)));
    const visibleRows=rows.slice(0,bankVisibleCount);
-   const total=all.reduce((n,g)=>n+g.qty,0), reserved=all.reduce((n,g)=>n+g.reserved,0);
-   document.getElementById("bankUnique").textContent=all.length;
-   document.getElementById("bankTotal").textContent=total;
-   document.getElementById("bankAvailable").textContent=total-reserved;
-   document.getElementById("bankReserved").textContent=reserved;
    const box=document.getElementById("bankInventory");
+   const hasItemFilter=!!q||!!cat;
+   if(!hasItemFilter&&!showAllItems){box.innerHTML=`<div class="gbBrowseHint"><b>Find an item anywhere in the Guild Bank</b><br>Use the Guild Bank search above or choose a category. Results appear only when you search.<br><button type="button" class="gbShowMore" style="margin-top:12px" onclick="window.bankShowAllItems()">Show All Items</button></div>`;renderRequests();renderManager();renderActivity();refreshSelected();return;}
    box.innerHTML=rows.length?visibleRows.map(g=>{
      const key=encodeURIComponent(g.item), isOpen=openItems.has(g.item), resOpen=openReservations.has(g.item);
      const reservations=activeReservations(g.item);
@@ -2365,14 +2538,30 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
  window.bankToggleReservations=function(encoded){const item=decodeURIComponent(encoded);openReservations.has(item)?openReservations.delete(item):openReservations.add(item);render()};
  window.bankSelectRequest=function(encoded){
    const item=decodeURIComponent(encoded);
-   document.getElementById("bankReqItem").value=item;
+   const itemInput=document.getElementById("bankReqItem");
+   const qtyInput=document.getElementById("bankReqQty");
+   const charInput=document.getElementById("bankReqChar");
+   const workspace=document.querySelector(".gbRequestWorkspace");
+   if(itemInput)itemInput.value=item;
    refreshSelected();
-   document.getElementById("bankReqQty").focus();document.getElementById("bankReqQty").select();
+   const bank=document.getElementById("guildBankPrototype");
+   if(bank){bank.dataset.gbview="request";bank.querySelectorAll(".gbNavBtn").forEach(b=>b.classList.toggle("active",b.dataset.gbview==="request"));const lab=document.getElementById("gbViewLabel");if(lab)lab.textContent="Request an Item";}
+   if(workspace){
+     workspace.scrollIntoView({behavior:"smooth",block:"center",inline:"nearest"});
+     workspace.classList.remove("gbRequestAttention");
+     void workspace.offsetWidth;
+     workspace.classList.add("gbRequestAttention");
+     setTimeout(()=>workspace.classList.remove("gbRequestAttention"),1400);
+   }
+   setTimeout(()=>{
+     const target=(charInput&&!charInput.value.trim())?charInput:qtyInput;
+     if(target){target.focus({preventScroll:true});if(target===qtyInput)target.select();}
+   },450);
  };
  window.bankClearSearch=function(){
    document.getElementById("bankSearch").value="";
    const cat=document.getElementById("gbCategoryFilter"); if(cat)cat.value="";
-   bankVisibleCount=BANK_PAGE_SIZE; render();
+   bankVisibleCount=BANK_PAGE_SIZE; showAllItems=false; render();
  };
  window.bankShowMore=function(){bankVisibleCount+=BANK_PAGE_SIZE;render()};
  window.bankMakeRequest=function(){
@@ -2433,7 +2622,13 @@ xConnect().catch(e=>{const m=document.getElementById("xMsg");if(m)m.textContent=
    render();
  };
  document.getElementById("bankDemoManager").addEventListener("change",function(){managerMode=this.checked;render()});
- document.getElementById("bankSearch").addEventListener("input",()=>{bankVisibleCount=BANK_PAGE_SIZE;render()});
+ document.getElementById("bankSearch").addEventListener("input",()=>{bankVisibleCount=BANK_PAGE_SIZE;showAllItems=false;render()});
+ document.getElementById("gbStorageSearch").addEventListener("input",()=>{showAllStorage=false;render()});
+ document.getElementById("gbStorageTypeFilter").addEventListener("change",()=>{showAllStorage=false;render()});
+ document.getElementById("gbShowAllStorage").addEventListener("click",()=>{showAllStorage=!showAllStorage;render()});
+ window.bankShowAllItems=()=>{showAllItems=true;render()};
+ document.getElementById("gbBrowseItems").addEventListener("click",()=>{bankBrowseMode="items";openStorageName=null;showAllItems=false;document.getElementById("gbBrowseItems").classList.add("active");document.getElementById("gbBrowseStorage").classList.remove("active");render()});
+ document.getElementById("gbBrowseStorage").addEventListener("click",()=>{bankBrowseMode="storage";openStorageName=null;showAllStorage=false;const s=document.getElementById("gbStorageSearch");if(s)s.value="";const t=document.getElementById("gbStorageTypeFilter");if(t)t.value="";document.getElementById("gbBrowseStorage").classList.add("active");document.getElementById("gbBrowseItems").classList.remove("active");render()});
  document.getElementById("bankReqItem").addEventListener("input",refreshSelected);
  render();
 })();
@@ -2462,10 +2657,11 @@ document.addEventListener("DOMContentLoaded",()=>{
      const {data:inv,error}=await db.from("guild_bank_inventory")
        .select("item_id,item_name,category,quantity,reserved_quantity,location_id");
      if(error) throw error;
-     const {data:loc,error:le}=await db.from("guild_bank_locations").select("id,name,active");
+     const {data:loc,error:le}=await db.from("guild_bank_locations").select("id,name,category,note,active");
      if(le) throw le;
-     const names=new Map((loc||[]).filter(x=>x.active!==false).map(x=>[x.id,x.name]));
-     const rows=(inv||[]).filter(x=>names.has(x.location_id)).map(x=>({...x,location_name:names.get(x.location_id)}));
+     const locations=new Map((loc||[]).filter(x=>x.active!==false).map(x=>[x.id,x]));
+     const rows=(inv||[]).filter(x=>locations.has(x.location_id)).map(x=>{const l=locations.get(x.location_id);return {...x,location_name:l.name,location_category:l.category||"Bank Alt",location_note:l.note||""}});
+     if(window.__MCC_SET_LIVE_BANK_LOCATIONS__)window.__MCC_SET_LIVE_BANK_LOCATIONS__(loc||[]);
      window.__MCC_SET_LIVE_BANK_ROWS__(rows);
      loaded=true;
      const cats=[...new Set(rows.map(x=>x.category||"Miscellaneous"))].sort((a,b)=>a.localeCompare(b));
