@@ -3480,7 +3480,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
-\n<script id="tree-of-logs-full-raid-fix">
+
+<script id="tree-of-logs-full-raid-fix">
 /* Tree of Logs — Full Raid Report support. Single Boss behavior remains unchanged. */
 (function(){
  const oldFind=window.tolWclFetchPlayerFight, oldEvents=window.tolWclFetchCombatEvents, oldValidate=window.tolWclAnalyzeHitTable, oldReview=window.tolWclActionableReview;
@@ -3492,7 +3493,25 @@ document.addEventListener('DOMContentLoaded',()=>{
  const setStatus=(t,ok)=>{const e=document.getElementById('tolWclReportStatus');if(e){e.textContent=t;e.style.color=ok?'#63e6a3':'#e8c85c'}};
  async function gql(query,variables){const token=sessionStorage.getItem('mcc_tol_wcl_token')||sessionStorage.getItem('tol_wcl_access_token')||sessionStorage.getItem('tolWclAccessToken')||sessionStorage.getItem('wcl_access_token'); if(!token)throw new Error('Connect to Warcraft Logs first.'); const r=await fetch(API,{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({query,variables})}); const j=await r.json(); if(!r.ok||j.errors?.length)throw new Error(j.errors?.map(x=>x.message).join(' | ')||'Warcraft Logs request failed ('+r.status+')'); return j;}
  async function resolve(){const code=codeFrom(document.getElementById('tolUrl')?.value);const character=(document.getElementById('tolCharacter')?.value||'').trim();if(!code||!character)throw new Error('Report URL and character are required.');const q=`query TOLRaid($code:String!){reportData{report(code:$code){code title masterData{actors{id name type subType}} fights{id name encounterID startTime endTime kill}}}}`;const j=await gql(q,{code});const report=j?.data?.reportData?.report;if(!report)throw new Error('Report not found.');const player=(report.masterData?.actors||[]).find(a=>(a.name||'').toLowerCase()===character.toLowerCase());if(!player)throw new Error('Character "'+character+'" was not found in report master data.');let fights=(report.fights||[]).filter(f=>f.encounterID>0);if(scope()==='All Boss Kills')fights=fights.filter(f=>f.kill);if(!fights.length)throw new Error('No boss fights matched the selected raid scope.');return{code,report,player,fights};}
- async function eventsFor(ctx,fight){const q=`query TOLEvents($code:String!,$start:Float!,$end:Float!,$source:Int!){reportData{report(code:$code){events(startTime:$start,endTime:$end,sourceID:$source,limit:10000){data nextPageTimestamp}}}}`;let all=[],next=fight.startTime,pages=0;while(next&&next<fight.endTime&&pages<20){const j=await gql(q,{code:ctx.code,start:next,end:fight.endTime,source:ctx.player.id});const ev=j?.data?.reportData?.report?.events;if(!ev)throw new Error('No events payload for '+fight.name+'.');all.push(...(Array.isArray(ev.data)?ev.data:[]));pages++;const n=Number(ev.nextPageTimestamp||0);if(!n||n<=next)break;next=n;}return{all,pages};}
+
+ async function eventsFor(ctx,fight){
+  const q=`query TOLEvents($code:String!,$start:Float!,$end:Float!,$source:Int!,$fights:[Int]!){reportData{report(code:$code){events(dataType:All,fightIDs:$fights,startTime:$start,endTime:$end,sourceID:$source,limit:10000){data nextPageTimestamp}}}}`;
+  if(!Number.isFinite(fight.startTime)||!Number.isFinite(fight.endTime)||fight.endTime<=fight.startTime)throw new Error('Invalid fight time range for '+fight.name+'.');
+  let all=[],next=fight.startTime,pages=0;
+  while(true){
+   if(pages>=100)throw new Error('Incomplete events: pagination limit reached for '+fight.name+'.');
+   const j=await gql(q,{code:ctx.code,start:next,end:fight.endTime,source:ctx.player.id,fights:[fight.id]});
+   const ev=j?.data?.reportData?.report?.events;
+   if(!ev||!Array.isArray(ev.data)||!Object.prototype.hasOwnProperty.call(ev,'nextPageTimestamp'))throw new Error('Incomplete events payload for '+fight.name+'.');
+   all.push(...ev.data);pages++;
+   if(ev.nextPageTimestamp===null||ev.nextPageTimestamp===0)break;
+   const n=ev.nextPageTimestamp;
+   if(typeof n!=='number'||!Number.isFinite(n)||n<=next||n>fight.endTime)throw new Error('Invalid pagination cursor for '+fight.name+'.');
+   next=n;
+  }
+  return{all,pages,complete:true};
+ }
+
  const abilityName=e=>String(e?.ability?.name||e?.abilityName||e?.name||((e?.abilityGameID!==undefined&&e?.abilityGameID!==null)?('Ability '+e.abilityGameID):'Unknown'));
  const abilityId=e=>Number(e?.abilityGameID??e?.ability?.gameID??e?.ability?.id??0);
  const isWhite=e=>{const n=abilityName(e).toLowerCase(),id=abilityId(e);return id===1||n==='melee'||n==='attack'||n==='auto attack'||n==='autoattack'||n==='swing'};
@@ -3505,8 +3524,10 @@ document.addEventListener('DOMContentLoaded',()=>{
  window.tolWclFetchCombatEvents=async function(){if(!isRaid())return oldEvents();try{const data=await raidData((i,n,f)=>setStatus('Loading combat events '+i+'/'+n+': '+f.name+'…',false));const lines=['⚔️ TREE OF LOGS — FULL RAID COMBAT EVENTS','',...header(data.ctx),''];let total=0,pages=0;data.rows.forEach(x=>{total+=x.ev.all.length;pages+=x.ev.pages;lines.push(x.f.name+' — '+(x.f.kill?'KILL':'WIPE')+': '+x.ev.all.length+' source events, '+x.s.atk.length+' attack events')});lines.push('','Total source events: '+total,'Pages fetched: '+pages,'','✓ Combat events received across the selected raid scope.');const r=result();if(r){r.textContent=lines.join('\n');r.style.display='block'}setStatus('✓ Full raid combat events received.',true);}catch(e){setStatus('Full raid combat events failed: '+e.message,false)}};
  window.tolWclAnalyzeHitTable=async function(){if(!isRaid())return oldValidate();try{const data=await raidData((i,n,f)=>setStatus('Validating hit table '+i+'/'+n+': '+f.name+'…',false));const lines=['🧭 TREE OF LOGS — FULL RAID VALIDATED HIT TABLE','',...header(data.ctx),''];let A={atk:0,w:0,sp:0,wm:0,wd:0,wg:0,sm:0,sd:0,sg:0};data.rows.forEach(x=>{const s=x.s;Object.keys(A).forEach(k=>A[k]+=Array.isArray(s[k])?s[k].length:s[k]);lines.push(x.f.name+' — '+(x.f.kill?'KILL':'WIPE')+' — attacks '+s.atk.length+' | white miss '+s.wm+'/'+s.w.length+' | white dodge '+s.wd+'/'+s.w.length+' | glancing '+s.wg+'/'+s.w.length+' | special miss '+s.sm+'/'+s.sp.length+' | special dodge '+s.sd+'/'+s.sp.length)});lines.push('','RAID TOTALS','Attack events: '+A.atk+' ('+A.w+' white / '+A.sp+' special)','White miss: '+A.wm+' / '+A.w+' ('+pct(A.wm,A.w)+')','White dodge: '+A.wd+' / '+A.w+' ('+pct(A.wd,A.w)+')','White glancing: '+A.wg+' / '+A.w+' ('+pct(A.wg,A.w)+')','Special miss: '+A.sm+' / '+A.sp+' ('+pct(A.sm,A.sp)+')','Special dodge: '+A.sd+' / '+A.sp+' ('+pct(A.sd,A.sp)+')','Special glancing: '+A.sg+' / '+A.sp+' ('+pct(A.sg,A.sp)+')');const r=result();if(r){r.textContent=lines.join('\n');r.style.display='block'}setStatus('✓ Full raid Validated Hit Table complete.',true);}catch(e){setStatus('Full raid hit table failed: '+e.message,false)}};
  window.tolWclActionableReview=async function(){if(!isRaid())return oldReview();try{const data=await raidData((i,n,f)=>setStatus('Building raid review '+i+'/'+n+': '+f.name+'…',false));const lines=['🎯 TREE OF LOGS — FULL RAID ACTIONABLE REVIEW','',...header(data.ctx),'','BOSS-BY-BOSS ACCURACY EVIDENCE'];let totals={atk:0,w:0,sp:0,wm:0,wd:0,wg:0,sm:0,sd:0,sg:0};data.rows.forEach(x=>{const s=x.s;totals.atk+=s.atk.length;totals.w+=s.w.length;totals.sp+=s.sp.length;['wm','wd','wg','sm','sd','sg'].forEach(k=>totals[k]+=s[k]);lines.push('• '+x.f.name+' — '+(x.f.kill?'KILL':'WIPE')+': '+s.atk.length+' attacks; miss/dodge '+(s.wm+s.wd+s.sm+s.sd)+'; white glancing '+s.wg+'/'+s.w.length+' ('+pct(s.wg,s.w.length)+')')});const avoid=totals.wm+totals.wd+totals.sm+totals.sd;lines.push('','RAID TOTALS','Attack events: '+totals.atk+' ('+totals.w+' white / '+totals.sp+' special)','White miss: '+totals.wm+'/'+totals.w+' ('+pct(totals.wm,totals.w)+')','White dodge: '+totals.wd+'/'+totals.w+' ('+pct(totals.wd,totals.w)+')','White glancing: '+totals.wg+'/'+totals.w+' ('+pct(totals.wg,totals.w)+')','Special miss: '+totals.sm+'/'+totals.sp+' ('+pct(totals.sm,totals.sp)+')','Special dodge: '+totals.sd+'/'+totals.sp+' ('+pct(totals.sd,totals.sp)+')','','PRIORITIZED ACTIONABLE IMPROVEMENTS');if(avoid===0)lines.push('1. NO RAID-WIDE MISS/DODGE FAILURE FOUND — Zero misses or dodges were recorded in the analyzed boss fights. Do not chase extra hit solely to fix this report.');else lines.push('1. REVIEW AVOIDED ATTACKS — '+avoid+' miss/dodge result(s) occurred across the selected raid scope. Use the boss-by-boss lines above to identify where they occurred before changing gear.');lines.push('2. GLANCING REMAINS A WHITE-MELEE RESULT — '+totals.wg+' of '+totals.w+' white swings ('+pct(totals.wg,totals.w)+') were glancing. Do not classify these as special misses or crushing blows.','3. THIS LAYER IS ACCURACY EVIDENCE ONLY — Rotation, buffs/consumables/cooldowns, gear, talents, and enchants require their own retrieved evidence before conclusions are made.','','EVIDENCE GUARDRAIL','This raid-wide recommendation is limited to miss / dodge / glancing evidence actually retrieved for the selected fights.');const r=result();if(r){r.textContent=lines.join('\n');r.style.display='block'}setStatus('✓ Full raid Actionable Review complete.',true);}catch(e){setStatus('Full raid Actionable Review failed: '+e.message,false);const r=result();if(r){r.textContent='TREE OF LOGS FULL RAID REVIEW ERROR\n\n'+e.message;r.style.display='block'}}};
+ window.tolRaidEvidenceCore=Object.freeze({raidData,stats,abilityName,abilityId,isWhite,pct});
 })();
-</script>\n<script id="tol-final-handoff-race-fix">
+</script>
+<script id="tol-final-handoff-race-fix">
 /* Tree of Logs — prevent Copy Final Handoff from copying the temporary
    "Building the final evidence packet…" text while an async full-raid build is running. */
 (function(){
@@ -3544,4 +3565,172 @@ document.addEventListener('DOMContentLoaded',()=>{
   };
 })();
 </script>
-\n<script id="tol-round1000-performance-layer">\n/* Tree of Logs — Round 1000: Full Raid Performance & Rotation evidence layer.\n   Adds retrieved ability/damage/cast evidence and refuses FINAL READY when a\n   checked evidence category has not yet been implemented. */\n(function(){\n const TOK='mcc_tol_wcl_token', EXP='mcc_tol_wcl_exp';\n const $=id=>document.getElementById(id);\n const scope=()=>$('tolScope')?.value||'';\n const isRaid=()=>scope()==='Full Raid Report'||scope()==='All Boss Kills';\n const result=()=>$('tolWclReportResult');\n const status=(m,ok)=>{const e=$('tolWclReportStatus');if(e){e.textContent=m;e.style.color=ok?'#63e6a3':'#e8c85c'}};\n const reportCode=v=>{const m=String(v||'').match(/reports\\/([A-Za-z0-9]+)/);return m?m[1]:String(v||'').trim()};\n const selected=()=>Array.from(document.querySelectorAll('#tolReviewBuilder .treeChecks input[type=checkbox]:checked, .treeChecks input[type=checkbox]:checked')).map(x=>x.value);\n const supported=new Set(['Performance & rotation','Miss / dodge / glancing','Actionable improvements']);\n async function gql(query,variables){const token=sessionStorage.getItem(TOK),exp=Number(sessionStorage.getItem(EXP)||0);if(!token||Date.now()>=exp)throw new Error('Connect to Warcraft Logs first.');const r=await fetch('https://www.warcraftlogs.com/api/v2/user',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify({query,variables})});const t=await r.text();let j;try{j=JSON.parse(t)}catch(_){throw new Error('Warcraft Logs returned non-JSON ('+r.status+').')}if(!r.ok||j.errors?.length)throw new Error(j.errors?.map(x=>x.message).join(' | ')||j.error||j.message||('API request failed ('+r.status+')'));return j}\n async function resolve(){const code=reportCode($('tolUrl')?.value),character=($('tolCharacter')?.value||'').trim();if(!code||!character)throw new Error('Report URL and character are required.');const q=`query TOLR1000($code:String!){reportData{report(code:$code){code title masterData{actors{id name type subType}} fights{id name encounterID startTime endTime kill}}}}`;const j=await gql(q,{code});const report=j?.data?.reportData?.report;if(!report)throw new Error('Report not found.');const player=(report.masterData?.actors||[]).find(a=>(a.name||'').toLowerCase()===character.toLowerCase());if(!player)throw new Error('Character "'+character+'" was not found in report master data.');let fights=(report.fights||[]).filter(f=>f.encounterID>0);if(scope()==='All Boss Kills')fights=fights.filter(f=>f.kill);if(!fights.length)throw new Error('No boss fights matched the selected raid scope.');return{code,report,player,fights}}\n async function eventsFor(ctx,f){const q=`query TOLR1000Events($code:String!,$start:Float!,$end:Float!,$source:Int!){reportData{report(code:$code){events(startTime:$start,endTime:$end,sourceID:$source,limit:10000){data nextPageTimestamp}}}}`;let all=[],next=f.startTime,pages=0;while(next&&next<f.endTime&&pages<30){const j=await gql(q,{code:ctx.code,start:next,end:f.endTime,source:ctx.player.id});const ev=j?.data?.reportData?.report?.events;if(!ev)throw new Error('No events payload for '+f.name+'.');all.push(...(Array.isArray(ev.data)?ev.data:[]));pages++;const n=Number(ev.nextPageTimestamp||0);if(!n||n<=next)break;next=n}return{all,pages}}\n const abilityName=e=>String(e?.ability?.name||e?.abilityName||e?.name||((e?.abilityGameID??e?.ability?.gameID)!=null?('Ability '+(e.abilityGameID??e.ability.gameID)):'Unknown'));\n const abilityId=e=>Number(e?.abilityGameID??e?.ability?.gameID??e?.ability?.id??0);\n const isWhite=e=>{const n=abilityName(e).toLowerCase(),id=abilityId(e);return id===1||n==='melee'||n==='attack'||n==='auto attack'||n==='autoattack'||n==='swing'};\n const outcome=e=>{if(String(e.type||'').toLowerCase()==='miss')return String(e?.missType??e?.missReason??e?.result??'MISS').trim().toUpperCase()||'MISS';if(e.isGlancing===true||e.isGlancingBlow===true||e.glancing===true||Number(e.hitType)===6)return'GLANCING';return'HIT'};\n const pct=(n,d)=>d?(100*n/d).toFixed(1)+'%':'0.0%';\n function summarize(all,f){const attacks=all.filter(e=>['damage','miss'].includes(String(e.type||'').toLowerCase())),white=attacks.filter(isWhite),special=attacks.filter(e=>!isWhite(e));const count=(a,k)=>a.filter(e=>outcome(e)===k).length;const damageEvents=all.filter(e=>String(e.type||'').toLowerCase()==='damage');const casts=all.filter(e=>String(e.type||'').toLowerCase()==='cast');const abilities={};damageEvents.forEach(e=>{const n=abilityName(e);const x=abilities[n]||(abilities[n]={name:n,events:0,damage:0});x.events++;x.damage+=Math.max(0,Number(e.amount||0))});const castMap={};casts.forEach(e=>{const n=abilityName(e);castMap[n]=(castMap[n]||0)+1});const top=Object.values(abilities).sort((a,b)=>b.damage-a.damage);const dur=Math.max(0.001,(f.endTime-f.startTime)/1000);const totalDamage=top.reduce((a,x)=>a+x.damage,0);return{attacks,white,special,wm:count(white,'MISS'),wd:count(white,'DODGE'),wg:count(white,'GLANCING'),sm:count(special,'MISS'),sd:count(special,'DODGE'),top,castMap,totalDamage,dur,dps:totalDamage/dur}}\n async function raidData(){const ctx=await resolve(),rows=[];for(let i=0;i<ctx.fights.length;i++){const f=ctx.fights[i];status('Retrieving evidence '+(i+1)+'/'+ctx.fights.length+': '+f.name+'…',false);const ev=await eventsFor(ctx,f);rows.push({f,ev,s:summarize(ev.all,f)})}return{ctx,rows}}\n function performanceLines(data){const lines=['PERFORMANCE & ROTATION — RETRIEVED EVIDENCE'];let raidDamage=0,raidSeconds=0,abilityTotals={},castTotals={};data.rows.forEach(x=>{const s=x.s;raidDamage+=s.totalDamage;raidSeconds+=s.dur;s.top.forEach(a=>{const z=abilityTotals[a.name]||(abilityTotals[a.name]={damage:0,events:0});z.damage+=a.damage;z.events+=a.events});Object.entries(s.castMap).forEach(([n,c])=>castTotals[n]=(castTotals[n]||0)+c);const top=s.top.filter(a=>!/^melee$|^attack$|^auto ?attack$/i.test(a.name)).slice(0,5).map(a=>a.name+' '+a.events+' hits / '+Math.round(a.damage).toLocaleString()+' dmg').join('; ')||'No damaging special abilities returned';lines.push('• '+x.f.name+' — '+(x.f.kill?'KILL':'WIPE')+': '+Math.round(s.totalDamage).toLocaleString()+' damage, '+Math.round(s.dps).toLocaleString()+' DPS over '+s.dur.toFixed(1)+'s | '+top)});const topRaid=Object.entries(abilityTotals).sort((a,b)=>b[1].damage-a[1].damage).slice(0,12);lines.push('','RAID-WIDE ABILITY DAMAGE');topRaid.forEach(([n,a],i)=>lines.push((i+1)+'. '+n+' — '+a.events+' damage events — '+Math.round(a.damage).toLocaleString()+' damage ('+pct(a.damage,raidDamage)+')'));const topCasts=Object.entries(castTotals).sort((a,b)=>b[1]-a[1]).slice(0,15);lines.push('','RAID-WIDE CAST COUNTS');if(topCasts.length)topCasts.forEach(([n,c])=>lines.push('• '+n+': '+c+' casts'));else lines.push('No cast events were returned for this player in the selected fights.');lines.push('','PERFORMANCE EVIDENCE TOTALS','Total boss-fight damage: '+Math.round(raidDamage).toLocaleString(),'Selected boss-fight time: '+raidSeconds.toFixed(1)+' seconds','Overall damage / selected fight time: '+Math.round(raidDamage/Math.max(raidSeconds,.001)).toLocaleString()+' DPS','','ROTATION EVIDENCE GUARDRAIL','This layer reports observed ability damage, damage-event counts, cast counts, and boss-by-boss output. It does not invent an ideal class rotation or claim an ability was used incorrectly without additional class/mechanics evidence.');return lines}\n function accuracyLines(data){let T={atk:0,w:0,sp:0,wm:0,wd:0,wg:0,sm:0,sd:0};const lines=['MISS / DODGE / GLANCING — RETRIEVED EVIDENCE'];data.rows.forEach(x=>{const s=x.s;T.atk+=s.attacks.length;T.w+=s.white.length;T.sp+=s.special.length;['wm','wd','wg','sm','sd'].forEach(k=>T[k]+=s[k]);lines.push('• '+x.f.name+' — '+(x.f.kill?'KILL':'WIPE')+': '+s.attacks.length+' attacks; miss/dodge '+(s.wm+s.wd+s.sm+s.sd)+'; white glancing '+s.wg+'/'+s.white.length+' ('+pct(s.wg,s.white.length)+')')});lines.push('','ACCURACY TOTALS','Attack events: '+T.atk+' ('+T.w+' white / '+T.sp+' special)','White miss: '+T.wm+'/'+T.w+' ('+pct(T.wm,T.w)+')','White dodge: '+T.wd+'/'+T.w+' ('+pct(T.wd,T.w)+')','White glancing: '+T.wg+'/'+T.w+' ('+pct(T.wg,T.w)+')','Special miss: '+T.sm+'/'+T.sp+' ('+pct(T.sm,T.sp)+')','Special dodge: '+T.sd+'/'+T.sp+' ('+pct(T.sd,T.sp)+')');return lines}\n window.tolWclActionableReview=async function(){if(!isRaid()){status('Round 1000 performance layer currently targets Full Raid Report / All Boss Kills.',false);return}const r=result();if(r){r.style.display='block';r.textContent='TREE OF LOGS — BUILDING SELECTED EVIDENCE…'}try{const want=selected();const unsupported=want.filter(x=>!supported.has(x));const data=await raidData();const lines=['🎯 TREE OF LOGS — FULL RAID EVIDENCE REVIEW','','Report: '+data.ctx.report.code+' — '+data.ctx.report.title,'Character: '+data.ctx.player.name+' (Actor ID '+data.ctx.player.id+')','Scope: '+scope(),'Boss fights analyzed: '+data.ctx.fights.length,'','SELECTED REVIEW AREAS: '+want.join('; ')];if(want.includes('Performance & rotation'))lines.push('',...performanceLines(data));if(want.includes('Miss / dodge / glancing'))lines.push('',...accuracyLines(data));lines.push('','EVIDENCE COMPLETENESS');if(unsupported.length){lines.push('NOT COMPLETE — checked categories still needing their own retrieval layer: '+unsupported.join('; '));}else{lines.push('COMPLETE for every checked evidence category currently selected.')}lines.push('','ACTIONABLE REVIEW STATUS');if(want.includes('Actionable improvements')){lines.push('Tree of Logs has collected the supported raw evidence above. Final player-facing priorities should be derived from these retrieved facts; no unsupported category is silently graded.')}lines.push('','✓ Round 1000 performance evidence layer complete.');if(r){r.textContent=lines.join('\\n');r.style.display='block';r.dataset.tolEvidenceComplete=unsupported.length?'0':'1'}status(unsupported.length?'Evidence retrieved, but checked unsupported layers remain: '+unsupported.join(', '):'✓ Selected evidence layers complete.',!unsupported.length);return lines.join('\\n')}catch(e){if(r){r.textContent='TREE OF LOGS EVIDENCE ERROR\\n\\n'+e.message;r.style.display='block';r.dataset.tolEvidenceComplete='0'}status('Evidence review failed: '+e.message,false);throw e}};\n window.tolWclFinalHandoff=async function(){const r=result();if(r){delete r.dataset.finalHandoff;r.style.display='block';r.textContent='TREE OF LOGS — FINAL ANALYSIS HANDOFF\\n\\nBuilding the final evidence packet…'}try{const evidence=await window.tolWclActionableReview();if(r?.dataset.tolEvidenceComplete!=='1')throw new Error('One or more checked review areas do not yet have a completed evidence layer. Uncheck them for this test or add those layers before Final Handoff.');if(typeof window.tolBuildOrder==='function')window.tolBuildOrder();const order=($('tolOrder')?.textContent||'').trim();if(!order||order==='No order built yet.')throw new Error('Build Review Order did not produce an analysis ticket.');const packet=['📦 TREE OF LOGS — FINAL ANALYSIS HANDOFF','','STATUS: ANALYSIS HANDOFF READY','Every checked review area in this order has a completed retrieved evidence layer.','','=== REVIEW ORDER ===',order,'','=== LIVE WARCRAFT LOGS EVIDENCE ===',evidence,'','=== HANDOFF INSTRUCTIONS ===','Use the Review Order as the requested scope and the Live Warcraft Logs Evidence as the verified evidence for this player and raid.','Do not invent conclusions outside evidence retrieved by Tree of Logs.','Deliverable requested by the order: complete player analysis with prioritized improvements and a polished PDF.','','✓ TREE OF LOGS HANDOFF READY'].join('\\n');if(r){r.textContent=packet;r.style.display='block';r.dataset.finalHandoff='1'}status('✓ Final Handoff ready. Copy this packet into ChatGPT for the final analysis/PDF.',true);return packet}catch(e){if(r){r.textContent='TREE OF LOGS FINAL HANDOFF ERROR\\n\\n'+e.message;r.style.display='block';delete r.dataset.finalHandoff}status('Final Handoff blocked: '+e.message,false);throw e}};\n window.tolWclCopyFinalHandoff=async function(){const r=result();if(window.__tolFinalPromise)await window.__tolFinalPromise;if(!r?.dataset.finalHandoff)await window.tolWclFinalHandoff();const text=(r?.textContent||'').trim();if(!text||/FINAL HANDOFF ERROR/i.test(text))return;try{await navigator.clipboard.writeText(text);status('✓ Final Handoff copied — paste it into ChatGPT.',true)}catch(e){status('Copy was blocked — select the Final Handoff text and copy it manually.',false)}};\n})();\n</script>\n</body></html>
+
+<script id="tol-performance-handoff-repair">
+/* Full Raid Performance evidence and requested-evidence handoff validation.
+   Uses the existing accuracy classifiers and PKCE session without changing login.
+   No additional evidence categories are implemented by this repair. */
+(function(){
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const P='Performance & rotation', A='Miss / dodge / glancing', I='Actionable improvements';
+ const core=window.tolRaidEvidenceCore;
+ const previousReview=window.tolWclActionableReview;
+ const fields=['tolUrl','tolCharacter','tolRole','tolScope','tolBoss','tolNotes'];
+ let revision=0, pending=null, evidenceState=null, finalState=null;
+ const snapshot=()=>({fields:fields.map(id=>$(id)?.value||''),requested:Array.from(document.querySelectorAll('#mccTreeLogs .treeCheck input:checked')).map(e=>e.value)});
+ const key=s=>JSON.stringify(s);
+ const current=s=>key(s)===key(snapshot());
+ const isRaid=s=>['Full Raid Report','All Boss Kills'].includes(s.fields[3]);
+ function status(message,ok=false){const e=$('tolWclReportStatus');if(e){e.textContent=message;e.style.color=ok?'#63e6a3':'#e8c85c';}}
+ function show(text){const r=$('tolWclReportResult');if(r){r.textContent=text;r.style.display='block';}}
+ function reset(){
+  revision++;evidenceState=null;finalState=null;
+  const r=$('tolWclReportResult');if(r){delete r.dataset.finalHandoff;delete r.dataset.tolEvidenceComplete;}
+ }
+ function invalidate(){
+  const hadEvidence=!!evidenceState||!!finalState||!!pending;reset();
+  if(hadEvidence){show('REQUEST CHANGED — rebuild the evidence review and final handoff.');status('Evidence invalidated by a request change.');}
+ }
+ function assertCurrent(run){if(run.revision!==revision||!current(run.request))throw new Error('The request changed during retrieval. Rebuild using the current selections.');}
+ function auth(){if(!sessionStorage.getItem('mcc_tol_wcl_token')||Date.now()>=Number(sessionStorage.getItem('mcc_tol_wcl_exp')||0))throw new Error('Connect to Warcraft Logs first.');}
+ const countText=n=>Math.round(n).toLocaleString('en-US');
+ function performance(data){
+  const lines=['PERFORMANCE & ROTATION — RETRIEVED EVIDENCE'];
+  const damage=new Map(),casts=new Map();let total=0,seconds=0,castCount=0;
+  const missing=[];
+  for(const {f,ev} of data.rows){
+   const duration=(f.endTime-f.startTime)/1000;
+   const de=ev.all.filter(e=>String(e.type).toLowerCase()==='damage');
+   const ce=ev.all.filter(e=>String(e.type).toLowerCase()==='cast');
+   if(!de.length||!ce.length)missing.push('#'+f.id+' '+f.name+': '+(!de.length?'no damage events; ':'')+(!ce.length?'no cast events':''));
+   const localDamage=new Map(),localCasts=new Map();let amount=0;
+   for(const e of de){
+    if(typeof e.amount!=='number'||!Number.isFinite(e.amount)||e.amount<0)throw new Error('Invalid damage amount in fight #'+f.id+'.');
+    const name=core.abilityName(e),id=core.abilityId(e),k=id?'id:'+id:'name:'+name;
+    for(const map of [damage,localDamage]){const a=map.get(k)||{name,id,events:0,damage:0};a.events++;a.damage+=e.amount;map.set(k,a);}
+    amount+=e.amount;
+   }
+   for(const e of ce){
+    const name=core.abilityName(e),id=core.abilityId(e),k=id?'id:'+id:'name:'+name;
+    for(const map of [casts,localCasts]){const a=map.get(k)||{name,id,count:0};a.count++;map.set(k,a);}
+   }
+   total+=amount;seconds+=duration;castCount+=ce.length;
+   lines.push('','#'+f.id+' '+f.name+' — '+(f.kill?'KILL':'WIPE'),
+    'Time range: '+f.startTime+'–'+f.endTime+' ms; '+duration.toFixed(1)+' seconds; '+ev.pages+' page(s), pagination exhausted.',
+    'Observed source damage: '+countText(amount)+'; DPS over full fight: '+(amount/duration).toFixed(1)+'; damage events: '+de.length+'; cast events: '+ce.length,
+    'Ability damage: '+(Array.from(localDamage.values()).sort((a,b)=>b.damage-a.damage).map(a=>a.name+' ['+a.id+']: '+a.events+' damage events / '+countText(a.damage)+' damage').join('; ')||'None returned'),
+    'Casts: '+(Array.from(localCasts.values()).map(a=>a.name+' ['+a.id+']: '+a.count).join('; ')||'None returned'));
+  }
+  lines.push('','RAID-WIDE ABILITY DAMAGE');
+  Array.from(damage.values()).sort((a,b)=>b.damage-a.damage).forEach(a=>lines.push(a.name+' ['+a.id+'] — '+a.events+' damage events; '+countText(a.damage)+' damage ('+core.pct(a.damage,total)+')'));
+  lines.push('','RAID-WIDE CAST COUNTS');
+  Array.from(casts.values()).sort((a,b)=>b.count-a.count).forEach(a=>lines.push(a.name+' ['+a.id+'] — '+a.count+' casts'));
+  lines.push('','PERFORMANCE EVIDENCE TOTALS','Observed source damage: '+countText(total),'Selected boss-fight time: '+seconds.toFixed(1)+' seconds','Damage / selected fight time: '+(total/seconds).toFixed(1)+' DPS','Cast events: '+castCount,
+   '','ROTATION EVIDENCE GUARDRAIL','These are observed damage and cast counts, not an assessment of ideal rotation, timing, uptime, resources, gear, or buffs. Damage events are not cast counts. DPS uses full selected fight duration and source-actor damage; it is not a Warcraft Logs ranking or pet-inclusive metric. Ability IDs remain explicit when event names are unavailable.');
+  return{lines,complete:!missing.length,reason:missing.join('; '),total,castCount};
+ }
+ function accuracy(data){
+  const T={atk:0,w:0,sp:0,wm:0,wd:0,wg:0,sm:0,sd:0,sg:0};
+  const lines=['MISS / DODGE / GLANCING — RETRIEVED EVIDENCE'];
+  for(const {f,s} of data.rows){
+   for(const k of Object.keys(T))T[k]+=Array.isArray(s[k])?s[k].length:s[k];
+   lines.push('#'+f.id+' '+f.name+' — '+(f.kill?'KILL':'WIPE')+': '+s.atk.length+' attacks; white miss '+s.wm+'/'+s.w.length+'; white dodge '+s.wd+'/'+s.w.length+'; white glancing '+s.wg+'/'+s.w.length+'; special miss '+s.sm+'/'+s.sp.length+'; special dodge '+s.sd+'/'+s.sp.length+'; special glancing '+s.sg+'/'+s.sp.length);
+  }
+  lines.push('','ACCURACY TOTALS','Attack events: '+T.atk+' ('+T.w+' white / '+T.sp+' special)');
+  for(const [label,k,d] of [['White miss','wm','w'],['White dodge','wd','w'],['White glancing','wg','w'],['Special miss','sm','sp'],['Special dodge','sd','sp'],['Special glancing','sg','sp']])lines.push(label+': '+T[k]+'/'+T[d]+' ('+core.pct(T[k],T[d])+')');
+  const missing=data.rows.filter(x=>!x.s.atk.length).map(x=>'#'+x.f.id+' '+x.f.name);
+  return{lines,complete:!missing.length,reason:missing.length?'No attack evidence: '+missing.join(', '):'',totals:T};
+ }
+ async function collect(run){
+  auth();assertCurrent(run);
+  const want=run.request.requested;
+  if(!want.length)throw new Error('Select at least one evidence category.');
+  const data=await core.raidData((i,n,f)=>{assertCurrent(run);auth();status('Retrieving evidence '+i+'/'+n+': '+f.name+'…');});
+  assertCurrent(run);auth();
+  if(!data.rows.length||data.rows.length!==data.ctx.fights.length||new Set(data.rows.map(x=>x.f.id)).size!==data.ctx.fights.length||data.rows.some(x=>x.ev.complete!==true))throw new Error('Not every selected fight has complete event coverage.');
+  const layers=new Map();
+  if(want.includes(P))layers.set(P,performance(data));
+  if(want.includes(A))layers.set(A,accuracy(data));
+  if(want.includes(I)){
+   const base=[...layers.values()];const actions=[];
+   const p=layers.get(P),a=layers.get(A);
+   if(p?.complete)actions.push('1. Use the boss-by-boss ability damage and cast counts above to choose encounters for rotation review. '+p.castCount+' casts and '+countText(p.total)+' observed damage support that review; counts alone do not establish a rotation mistake.');
+   if(a?.complete){const t=a.totals,avoided=t.wm+t.wd+t.sm+t.sd;actions.push((actions.length+1)+'. '+(avoided?'Review the '+avoided+' recorded miss/dodge outcomes in the identified fights before changing gear.':'No miss/dodge outcomes were recorded in these fights. Do not infer a hit-rating problem from this evidence.'), (actions.length+2)+'. Keep white glancing separate from special misses: '+t.wg+'/'+t.w+' white swings ('+core.pct(t.wg,t.w)+').');}
+   layers.set(I,{lines:['PRIORITIZED ACTIONABLE REVIEW',...actions,'Class-specific rotation prescriptions require additional verified context.'],complete:base.length>0&&base.every(x=>x.complete),reason:base.length?'Selected evidence must complete before actionable review.':'Select Performance & rotation or Miss / dodge / glancing to support actionable review.'});
+  }
+  for(const name of want)if(!layers.has(name))layers.set(name,{lines:[],complete:false,reason:'Retrieval for this requested category is not implemented.'});
+  const complete=want.every(name=>layers.get(name)?.complete===true);
+  const lines=['TREE OF LOGS — FULL RAID ACTIONABLE REVIEW','','Report: '+data.ctx.code+' — '+data.ctx.report.title,'Character: '+data.ctx.player.name+' (Actor ID '+data.ctx.player.id+')','Scope: '+run.request.fields[3],'Boss fights analyzed: '+data.rows.length,'Fight IDs: '+data.rows.map(x=>x.f.id).join(', '),'Selected review areas: '+want.join('; ')];
+  for(const name of want)lines.push('',...layers.get(name).lines);
+  lines.push('','REQUESTED-EVIDENCE COMPLETENESS');
+  for(const name of want){const layer=layers.get(name);lines.push((layer.complete?'COMPLETE':'INCOMPLETE')+' — '+name+(layer.complete?'':': '+layer.reason));}
+  lines.push('',complete?'Selected evidence is complete.':'NOT COMPLETE — Final Handoff is blocked.');
+  const text=lines.join('\n');
+  evidenceState={request:run.request,revision:run.revision,layers,complete,text,fights:data.rows.map(x=>x.f.id)};
+  const r=$('tolWclReportResult');if(r)r.dataset.tolEvidenceComplete=complete?'1':'0';
+  return evidenceState;
+ }
+ function validate(e,run){
+  assertCurrent(run);
+  if(e!==evidenceState||!e?.complete||e.revision!==run.revision||key(e.request)!==key(run.request))throw new Error('Requested evidence is incomplete.');
+  const missing=run.request.requested.filter(name=>!e.layers.get(name)?.complete||!e.layers.get(name)?.lines.length);
+  if(missing.length)throw new Error('Missing requested evidence: '+missing.join('; '));
+  if(run.request.requested.includes(P)&&!e.text.includes('PERFORMANCE & ROTATION — RETRIEVED EVIDENCE'))throw new Error('Performance evidence is missing from the assembled review.');
+ }
+ function runJob(final){
+  if(pending)return pending;
+  reset();const run={request:snapshot(),revision};
+  const r=$('tolWclReportResult');if(r)r.dataset.finalBusy='1';
+  show('TREE OF LOGS — '+(final?'BUILDING FINAL HANDOFF':'BUILDING SELECTED EVIDENCE')+'…');
+  pending=Promise.resolve().then(async()=>{
+   if(!isRaid(run.request)){
+    if(final)throw new Error('Requested-evidence completeness is verified for Full Raid Report and All Boss Kills only.');
+    await previousReview();return null;
+   }
+   const e=await collect(run);show(e.text);
+   if(!final){status(e.complete?'✓ Selected evidence review complete.':'Evidence incomplete — Final Handoff blocked.',e.complete);return e;}
+   validate(e,run);
+   window.tolBuildOrder();assertCurrent(run);
+   const order=($('tolOrder')?.textContent||'').trim();
+   if(!order||order==='No order built yet.')throw new Error('Review Order was not produced.');
+   const packet=['TREE OF LOGS — FINAL ANALYSIS HANDOFF','','STATUS: ANALYSIS HANDOFF READY','All requested evidence categories below passed completeness checks for this report, actor, scope, and fight set.','','=== REVIEW ORDER ===',order,'','=== LIVE WARCRAFT LOGS EVIDENCE ===',e.text,'','=== HANDOFF INSTRUCTIONS ===','Use only the retrieved facts and respect their stated limitations. Performance readiness confirms observed damage/cast evidence, not ideal-rotation validation. Do not grade unretrieved categories.','Prepare the player analysis and PDF requested by the order without inventing unsupported conclusions.'].join('\n');
+   validate(e,run);finalState={request:run.request,revision:run.revision,packet};
+   show(packet);if(r)r.dataset.finalHandoff='1';
+   status('✓ Final Handoff ready — requested evidence verified.',true);return packet;
+  }).catch(error=>{
+   const detail=evidenceState?.revision===run.revision?evidenceState.text:'';
+   evidenceState=null;finalState=null;if(r){delete r.dataset.finalHandoff;r.dataset.tolEvidenceComplete='0';}
+   show('TREE OF LOGS — '+(final?'FINAL HANDOFF BLOCKED':'EVIDENCE REVIEW FAILED')+'\n\n'+error.message+(detail?'\n\n'+detail:''));status('Final Handoff blocked: '+error.message);return null;
+  }).finally(()=>{pending=null;window.__tolFinalPromise=null;if(r)delete r.dataset.finalBusy;});
+  window.__tolFinalPromise=pending;return pending;
+ }
+ window.tolWclActionableReview=()=>runJob(false);
+ window.tolWclFinalHandoff=async()=>{
+  if(pending){await pending;if(finalState&&current(finalState.request))return finalState.packet;}
+  return runJob(true);
+ };
+ window.tolWclCopyFinalHandoff=async()=>{
+  if(pending)await pending;
+  if(!finalState||!current(finalState.request)||finalState.revision!==revision)await window.tolWclFinalHandoff();
+  const f=finalState,r=$('tolWclReportResult');
+  if(!f||!current(f.request)||f.revision!==revision||r?.dataset.finalHandoff!=='1'||r.textContent!==f.packet)return;
+  try{await navigator.clipboard.writeText(f.packet);status('✓ Final Handoff copied.',true);}catch(error){status('Copy was blocked — select the verified Final Handoff text and copy it manually.');}
+ };
+ // Shared result-panel operations must never leave an old final-ready marker behind.
+ for(const name of ['tolWclFetchReport','tolWclFetchPlayerFight','tolWclFetchCombatEvents','tolWclAnalyzeHitTable']){
+  const original=window[name];if(typeof original!=='function')continue;
+  window[name]=function(...args){
+   if(pending){status('An evidence build is running. Wait for it to finish.');return pending;}
+   reset();
+   pending=Promise.resolve().then(()=>original.apply(this,args)).finally(()=>{pending=null;});
+   return pending;
+  };
+ }
+ for(const name of ['tolClear','tolWclDisconnect']){const original=window[name];if(typeof original==='function')window[name]=function(...args){invalidate();return original.apply(this,args);};}
+ const form=$('mccTreeLogs');
+ for(const event of ['input','change'])form?.addEventListener(event,e=>{if(fields.includes(e.target.id)||e.target.matches?.('.treeCheck input'))invalidate();});
+})();
+
+</script>
+</body></html>
