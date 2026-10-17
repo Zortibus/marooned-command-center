@@ -3640,10 +3640,10 @@ document.addEventListener('DOMContentLoaded',()=>{
  if(!code||!character)throw new Error('Report URL and character are required.');
  if(selectedScope==='Single Boss'&&!boss)throw new Error('Choose or type a boss for Single Boss review.');
  if(selectedScope==='Focused Problem Only'&&!notes)throw new Error('Tell Tree what you want investigated for Focused Problem Only.');
- const q=`query TOLRaid($code:String!){reportData{report(code:$code){code title masterData{actors{id name type subType}} fights{id name encounterID startTime endTime kill}}}}`;
+ const q=`query TOLRaid($code:String!){reportData{report(code:$code){code title masterData{actors{id name type subType} abilities{gameID name type}} fights{id name encounterID startTime endTime kill}}}}`;
  const j=await gql(q,{code}),report=j?.data?.reportData?.report;
  if(!report)throw new Error('Report not found.');
- const player=(report.masterData?.actors||[]).find(a=>(a.name||'').toLowerCase()===character.toLowerCase());
+ const player=(report.masterData?.actors||[]).find(a=>a.type==='Player'&&(a.name||'').toLowerCase()===character.toLowerCase());
  if(!player)throw new Error('Character "'+character+'" was not found in report master data.');
  let fights=(report.fights||[]).filter(f=>f.encounterID>0);
  if(selectedScope==='All Boss Kills')fights=fights.filter(f=>f.kill);
@@ -3666,7 +3666,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 }
 
  async function eventsFor(ctx,fight){
-  const q=`query TOLEvents($code:String!,$start:Float!,$end:Float!,$source:Int!,$fights:[Int]!){reportData{report(code:$code){events(dataType:All,fightIDs:$fights,startTime:$start,endTime:$end,sourceID:$source,limit:10000){data nextPageTimestamp}}}}`;
+  const q=`query TOLEvents($code:String!,$start:Float!,$end:Float!,$source:Int!,$fights:[Int]!){reportData{report(code:$code){events(dataType:All,fightIDs:$fights,startTime:$start,endTime:$end,sourceID:$source,includeResources:true,limit:10000){data nextPageTimestamp}}}}`;
   if(!Number.isFinite(fight.startTime)||!Number.isFinite(fight.endTime)||fight.endTime<=fight.startTime)throw new Error('Invalid fight time range for '+fight.name+'.');
   let all=[],next=fight.startTime,pages=0;
   while(true){
@@ -3737,6 +3737,199 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
+<script id="tol-healer-evidence-v2">
+/* Tree of Logs: report-scoped identity, validated healing and healer coaching. */
+(function(){
+ 'use strict';
+ const VERIFIED={"1":{"name":"Melee","strict":false},"75":{"name":"Auto Shot","strict":false},"475":{"name":"Remove Lesser Curse","strict":false},"1680":{"name":"Whirlwind","strict":false},"1719":{"name":"Recklessness","strict":false},"2457":{"name":"Battle Stance","strict":false},"2458":{"name":"Berserker Stance","strict":false},"2687":{"name":"Bloodrage","strict":false},"4987":{"name":"Cleanse","strict":false},"6554":{"name":"Pummel","strict":false},"7373":{"name":"Hamstring","strict":false},"11585":{"name":"Overpower","strict":false},"11597":{"name":"Sunder Armor","strict":false},"12328":{"name":"Death Wish","strict":false},"12721":{"name":"Deep Wounds","strict":false},"18499":{"name":"Berserker Rage","strict":false},"19943":{"name":"Flash of Light","family":"Flash of Light","rank":6,"strict":true,"source":"https://classicdb.ch/?spell=19943"},"20569":{"name":"Cleave","strict":false},"20615":{"name":"Intercept","strict":false},"20617":{"name":"Intercept","strict":false},"20647":{"name":"Execute","strict":false},"23888":{"name":"Bloodthirst","strict":false},"23891":{"name":"Bloodthirst","strict":false},"23894":{"name":"Bloodthirst","strict":false},"25286":{"name":"Heroic Strike","strict":false},"25289":{"name":"Battle Shout","strict":false},"25299":{"name":"Rejuvenation","family":"Rejuvenation","rank":11,"strict":true,"source":"https://classicdb.ch/?spell=25299"},"25891":{"name":"Earthstrike","family":"Earthstrike","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=25891"},"25898":{"name":"Greater Blessing of Kings","strict":false},"17528":{"name":"Mighty Rage Potion","strict":false},"12970":{"name":"Flurry","strict":false},"20007":{"name":"Holy Strength","strict":false},"29131":{"name":"Bloodrage","strict":false},"6615":{"name":"Free Action Potion","strict":false},"14204":{"name":"Enrage","strict":false},"16624":{"name":"Thorium Shield Spike","strict":false},"18125":{"name":"Blessed Sunfruit","strict":false},"17538":{"name":"Elixir of the Mongoose","strict":false},"8221":{"name":"Savory Deviate Delight","strict":false},"16591":{"name":"Noggenfogger Elixir","strict":false},"16595":{"name":"Noggenfogger Elixir","strict":false},"17546":{"name":"Greater Nature Protection Potion","strict":false},"10667":{"name":"Rage of Ages","strict":false},"22820":{"name":"Slip'kik's Savvy","strict":false},"23768":{"name":"Sayge's Dark Fortune of Damage","strict":false},"22818":{"name":"Mol'dar's Moxie","strict":false},"22817":{"name":"Fengus' Ferocity","strict":false},"15366":{"name":"Songflower Serenade","strict":false},"24427":{"name":"Diamond Flask","strict":false},"26400":{"name":"Arcane Shroud","strict":false},"17038":{"name":"Winterfall Firewater","strict":false},"774":{"name":"Rejuvenation","family":"Rejuvenation","rank":1,"strict":true,"source":"https://classicdb.ch/?spell=774"},"1058":{"name":"Rejuvenation","family":"Rejuvenation","rank":2,"strict":true,"source":"https://classicdb.ch/?spell=1058"},"1430":{"name":"Rejuvenation","family":"Rejuvenation","rank":3,"strict":true,"source":"https://classicdb.ch/?spell=1430"},"2090":{"name":"Rejuvenation","family":"Rejuvenation","rank":4,"strict":true,"source":"https://classicdb.ch/?spell=2090"},"2091":{"name":"Rejuvenation","family":"Rejuvenation","rank":5,"strict":true,"source":"https://classicdb.ch/?spell=2091"},"3627":{"name":"Rejuvenation","family":"Rejuvenation","rank":6,"strict":true,"source":"https://classicdb.ch/?spell=3627"},"8910":{"name":"Rejuvenation","family":"Rejuvenation","rank":7,"strict":true,"source":"https://classicdb.ch/?spell=8910"},"9839":{"name":"Rejuvenation","family":"Rejuvenation","rank":8,"strict":true,"source":"https://classicdb.ch/?spell=9839"},"9840":{"name":"Rejuvenation","family":"Rejuvenation","rank":9,"strict":true,"source":"https://classicdb.ch/?spell=9840"},"9841":{"name":"Rejuvenation","family":"Rejuvenation","rank":10,"strict":true,"source":"https://classicdb.ch/?spell=9841"},"8936":{"name":"Regrowth","family":"Regrowth","rank":1,"strict":true,"source":"https://classicdb.ch/?spell=8936"},"8938":{"name":"Regrowth","family":"Regrowth","rank":2,"strict":true,"source":"https://classicdb.ch/?spell=8938"},"8939":{"name":"Regrowth","family":"Regrowth","rank":3,"strict":true,"source":"https://classicdb.ch/?spell=8939"},"8940":{"name":"Regrowth","family":"Regrowth","rank":4,"strict":true,"source":"https://classicdb.ch/?spell=8940"},"8941":{"name":"Regrowth","family":"Regrowth","rank":5,"strict":true,"source":"https://classicdb.ch/?spell=8941"},"9750":{"name":"Regrowth","family":"Regrowth","rank":6,"strict":true,"source":"https://classicdb.ch/?spell=9750"},"9856":{"name":"Regrowth","family":"Regrowth","rank":7,"strict":true,"source":"https://classicdb.ch/?spell=9856"},"9857":{"name":"Regrowth","family":"Regrowth","rank":8,"strict":true,"source":"https://classicdb.ch/?spell=9857"},"9858":{"name":"Regrowth","family":"Regrowth","rank":9,"strict":true,"source":"https://classicdb.ch/?spell=9858"},"5185":{"name":"Healing Touch","family":"Healing Touch","rank":1,"strict":true,"source":"https://classicdb.ch/?spell=5185"},"5186":{"name":"Healing Touch","family":"Healing Touch","rank":2,"strict":true,"source":"https://classicdb.ch/?spell=5186"},"5187":{"name":"Healing Touch","family":"Healing Touch","rank":3,"strict":true,"source":"https://classicdb.ch/?spell=5187"},"5188":{"name":"Healing Touch","family":"Healing Touch","rank":4,"strict":true,"source":"https://classicdb.ch/?spell=5188"},"5189":{"name":"Healing Touch","family":"Healing Touch","rank":5,"strict":true,"source":"https://classicdb.ch/?spell=5189"},"6778":{"name":"Healing Touch","family":"Healing Touch","rank":6,"strict":true,"source":"https://classicdb.ch/?spell=6778"},"8903":{"name":"Healing Touch","family":"Healing Touch","rank":7,"strict":true,"source":"https://classicdb.ch/?spell=8903"},"9758":{"name":"Healing Touch","family":"Healing Touch","rank":8,"strict":true,"source":"https://classicdb.ch/?spell=9758"},"9888":{"name":"Healing Touch","family":"Healing Touch","rank":9,"strict":true,"source":"https://classicdb.ch/?spell=9888"},"9889":{"name":"Healing Touch","family":"Healing Touch","rank":10,"strict":true,"source":"https://classicdb.ch/?spell=9889"},"25297":{"name":"Healing Touch","family":"Healing Touch","rank":11,"strict":true,"source":"https://classicdb.ch/?spell=25297"},"20484":{"name":"Rebirth","family":"Rebirth","rank":1,"strict":true,"source":"https://classicdb.ch/?spell=20484"},"20739":{"name":"Rebirth","family":"Rebirth","rank":2,"strict":true,"source":"https://classicdb.ch/?spell=20739"},"20742":{"name":"Rebirth","family":"Rebirth","rank":3,"strict":true,"source":"https://classicdb.ch/?spell=20742"},"20747":{"name":"Rebirth","family":"Rebirth","rank":4,"strict":true,"source":"https://classicdb.ch/?spell=20747"},"20748":{"name":"Rebirth","family":"Rebirth","rank":5,"strict":true,"source":"https://classicdb.ch/?spell=20748"},"740":{"name":"Tranquility","family":"Tranquility","rank":1,"strict":true,"source":"https://classicdb.ch/?spell=740"},"8918":{"name":"Tranquility","family":"Tranquility","rank":2,"strict":true,"source":"https://classicdb.ch/?spell=8918"},"9862":{"name":"Tranquility","family":"Tranquility","rank":3,"strict":true,"source":"https://classicdb.ch/?spell=9862"},"9863":{"name":"Tranquility","family":"Tranquility","rank":4,"strict":true,"source":"https://classicdb.ch/?spell=9863"},"29166":{"name":"Innervate","family":"Innervate","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=29166"},"17116":{"name":"Nature's Swiftness","family":"Nature's Swiftness","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=17116"},"18562":{"name":"Swiftmend","family":"Swiftmend","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=18562"},"2782":{"name":"Remove Curse","family":"Remove Curse","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=2782"},"2893":{"name":"Abolish Poison","family":"Abolish Poison","rank":1,"strict":true,"source":"https://classicdb.ch/?spell=2893"},"8946":{"name":"Cure Poison","family":"Cure Poison","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=8946"},"16666":{"name":"Demonic Rune","family":"Demonic Rune","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=16666"},"27869":{"name":"Dark Rune","family":"Dark Rune","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=27869"},"437":{"name":"Restore Mana","family":"Restore Mana","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=437"},"438":{"name":"Restore Mana","family":"Restore Mana","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=438"},"2023":{"name":"Restore Mana","family":"Restore Mana","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=2023"},"11903":{"name":"Restore Mana","family":"Restore Mana","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=11903"},"17530":{"name":"Restore Mana","family":"Restore Mana","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=17530"},"17531":{"name":"Restore Mana","family":"Restore Mana","rank":null,"strict":true,"source":"https://classicdb.ch/?spell=17531"}};
+ const kind=e=>String(e?.type||'').toLowerCase();
+ const number=v=>typeof v==='number'&&Number.isFinite(v);
+ const gameId=e=>{const x=e?.abilityGameID??e?.ability?.gameID;return number(x)&&x>0?x:null;};
+ const normal=s=>String(s||'').trim().toLowerCase().replace(/\s*\(rank\s+\d+\)\s*$/i,'');
+ const named=s=>typeof s==='string'&&s.trim()&&!/^(?:ability|spell|unknown|unresolved|conflicting ability)(?:\s|\[|$)/i.test(s);
+ const pct=(n,d)=>d?(100*n/d).toFixed(1)+'%':'0.0%';
+ const count=n=>Math.round(n).toLocaleString('en-US');
+ const sec=n=>(n/1000).toFixed(1)+'s';
+ const inFight=(e,f)=>number(e.timestamp)&&e.timestamp>=f.startTime&&e.timestamp<=f.endTime;
+ function resolver(ctx){
+  const metadata=new Map(),warnings=new Set();
+  for(const x of ctx.report?.masterData?.abilities||[]){
+   if(!number(x.gameID)||!named(x.name))continue;
+   const prior=metadata.get(x.gameID);if(prior&&normal(prior.name)!==normal(x.name))metadata.set(x.gameID,{conflict:true});else if(!prior)metadata.set(x.gameID,x);
+  }
+  function resolve(e){
+   const id=gameId(e),meta=metadata.get(id),verified=VERIFIED[id],raw=e?.ability?.name||e?.abilityName;
+   const names=[meta?.name,raw,(verified?.strict||(!named(meta?.name)&&!named(raw)))?verified?.name:null].filter(named);
+   const distinct=new Set(names.map(normal));
+   if(meta?.conflict||distinct.size>1){
+    const label='Conflicting ability ['+(id??'no game ID')+']';warnings.add(label+': '+names.join(' / '));
+    return{id,name:label,label,family:null,rank:null,resolved:false,conflict:true,provenance:'conflict'};
+   }
+   const name=names[0]||(id===1?'Melee':null);
+   const rank=verified?.rank??(typeof e.rank==='number'?e.rank:null);
+   const family=verified?.family||(name?name.replace(/\s*\(rank\s+\d+\)\s*$/i,''):null);
+   return{id,name:name||'Unresolved',family,rank,resolved:!!name,conflict:false,provenance:meta?.name?'WCL report metadata':named(raw)?'event name':verified?'verified Classic Era':id===1?'WCL melee identifier':'unresolved',label:name?(name+(rank&&!/\(rank\s+\d+\)/i.test(name)?' (Rank '+rank+')':'')+(id?' ['+id+']':'')):'Unresolved ['+(id??'no game ID')+']'};
+  }
+  return{resolve,warnings,enrich:events=>events.map(e=>{const x=resolve(e),name=x.resolved?x.name:x.label;return{...e,ability:{...e.ability,name},abilityName:name,_tolIdentity:x};})};
+ }
+ function attach(data){
+  const selected=String(data.requestRole||'').split(/\s*[—–]\s*/)[0];
+  if(['Warrior','Rogue','Priest','Paladin','Druid','Hunter','Mage','Warlock','Shaman'].includes(selected)&&data.ctx.player.subType&&selected!==data.ctx.player.subType)throw new Error('Selected class does not match the Warcraft Logs player class.');
+  if(!data.identity)data.identity=resolver(data.ctx);
+  data.rows.forEach(x=>{x.ev={...x.ev,all:data.identity.enrich(x.ev.all)};});
+  return data;
+ }
+ function identity(data,e){return e._tolIdentity||data.identity.resolve(e);}
+ function actualClass(data){return String(data.ctx.player.subType||'');}
+ function isHealer(data){const role=String(data.requestRole||'');return /healer|restoration|holy|discipline/i.test(role)&&['Druid','Priest','Paladin','Shaman'].includes(actualClass(data));}
+ function isResto(data){return actualClass(data)==='Druid'&&/restoration/i.test(data.requestRole||'');}
+ function checked(v,label,allowAbsent=false){if(allowAbsent&&v===undefined)return 0;if(!number(v)||v<0)throw new Error('Invalid '+label+' in healing evidence.');return v;}
+ function healingSummary(data,stream){
+  if(stream.complete!==true)throw new Error('Healing pagination is incomplete.');
+  const actor=Number(data.ctx.player.id),spells=new Map(),fights=data.rows.map(({f,ev})=>({f,seconds:(f.endTime-f.startTime)/1000,effective:0,over:0,absorbs:0,events:0,ticks:0,direct:0,unclassified:0,spells:new Map(),casts:new Map(),baseComplete:ev.complete===true}));
+  fights.forEach(x=>{if(!number(x.seconds)||x.seconds<=0)throw new Error('Invalid healing fight duration.');});
+  for(let i=0;i<fights.length;i++)for(let j=i+1;j<fights.length;j++)if(Math.max(fights[i].f.startTime,fights[j].f.startTime)<Math.min(fights[i].f.endTime,fights[j].f.endTime))throw new Error('Overlapping attempt windows; cannot safely assign healing.');
+  let ignored=0,unassigned=0,conflicts=0;
+  for(const e of stream.all){
+   if(!['heal','absorbed'].includes(kind(e))){ignored++;continue;}
+   if(!number(e.sourceID))throw new Error('Invalid source actor in healing evidence.');
+   if(e.sourceID!==actor){ignored++;continue;}
+   if(!number(e.timestamp))throw new Error('Missing healing event timestamp.');
+   const matches=fights.filter(x=>inFight(e,x.f));if(matches.length!==1){unassigned++;continue;}const fight=matches[0];
+   const amount=checked(e.amount,'amount'),over=checked(e.overheal,'overheal',true),id=identity(data,e);
+   if(!id.resolved)conflicts++;
+   const key=id.id?'game:'+id.id:'name:'+id.name;
+   const periodic=e.tick===true||e.isTick===true, direct=e.tick===false||e.isTick===false;
+   const absorb=kind(e)==='absorbed';
+   for(const map of [fight.spells,spells]){
+    const x=map.get(key)||{...id,effective:0,over:0,absorbs:0,events:0,ticks:0,direct:0,unclassified:0};
+    x.effective+=amount;x.over+=over;x.absorbs+=absorb?amount:0;x.events++;
+    if(periodic)x.ticks++;else if(direct)x.direct++;else x.unclassified++;
+    map.set(key,x);
+   }
+   fight.effective+=amount;fight.over+=over;fight.absorbs+=absorb?amount:0;fight.events++;
+   if(periodic)fight.ticks++;else if(direct)fight.direct++;else fight.unclassified++;
+  }
+  for(const [i,row] of data.rows.entries())for(const e of row.ev.all){
+   if(Number(e.sourceID)!==actor||kind(e)!=='cast'||!inFight(e,row.f))continue;
+   const id=identity(data,e),key=id.id?'game:'+id.id:'name:'+id.name;
+   const x=fights[i].casts.get(key)||{...id,count:0};x.count++;fights[i].casts.set(key,x);
+  }
+  const totals=fights.reduce((t,x)=>{for(const k of ['effective','over','events','absorbs','seconds'])t[k]+=x[k];return t;},{effective:0,over:0,events:0,absorbs:0,seconds:0});
+  const lines=['HEALING & OVERHEAL — BOSS-BY-BOSS EVIDENCE'];
+  for(const x of fights){
+   x.hps=x.effective/x.seconds;
+   lines.push('',x.f.name+' — '+(x.f.kill?'KILL':'WIPE')+' — attempt '+x.f.id+'; '+x.seconds.toFixed(1)+'s',count(x.effective)+' effective healing; '+x.hps.toFixed(1)+' HPS over full fight; '+count(x.over)+' overheal ('+pct(x.over,x.effective+x.over)+'); '+x.events+' healing/absorb events.');
+   if(x.absorbs)lines.push('Logged absorbs included: '+count(x.absorbs)+'.');
+   for(const s of Array.from(x.spells.values()).sort((a,b)=>b.effective-a.effective)){
+    const cast=x.casts.get(s.id?'game:'+s.id:'name:'+s.name)?.count||0;
+    lines.push(s.label+': '+count(s.effective)+' effective; '+(s.effective/x.seconds).toFixed(1)+' HPS; '+pct(s.effective,x.effective)+' share; '+count(s.over)+' overheal ('+pct(s.over,s.effective+s.over)+'); '+cast+' matching spell-ID casts; '+s.events+' heal events ('+s.ticks+' explicit periodic, '+s.direct+' explicit direct, '+s.unclassified+' not classified).');
+   }
+   const heals=['Rejuvenation','Regrowth','Healing Touch','Swiftmend','Tranquility'];
+   const casts=Array.from(x.casts.values()).filter(s=>heals.includes(s.family));
+   lines.push('Healing casts (separate from ticks): '+(casts.map(s=>s.label+' '+s.count).join('; ')||'No resolved healing casts observed.'));
+  }
+  lines.push('','HEALING TOTALS',count(totals.effective)+' effective; '+(totals.seconds?totals.effective/totals.seconds:0).toFixed(1)+' weighted HPS over '+totals.seconds.toFixed(1)+' selected fight seconds; '+count(totals.over)+' overheal ('+pct(totals.over,totals.effective+totals.over)+').');
+  if(!totals.events)lines.push('Valid zero: no player healing events in the completed selected stream.');
+  if(ignored)lines.push('Excluded '+ignored+' foreign-source/non-healing event(s).');
+  if(unassigned)lines.push(unassigned+' player healing event(s) could not be assigned to a selected attempt.');
+  if(conflicts)lines.push(conflicts+' healing event(s) have unresolved or conflicting spell identities; do not interpret those spell labels.');
+  return{...totals,healing:true,fights,spells,lines,complete:!unassigned&&!conflicts&&fights.every(x=>x.baseComplete),reason:unassigned?'Unassigned healing events.':conflicts?'Unresolved healing spell identity.':''};
+ }
+ async function healing(data,typed,gql){
+  if(data._tolHealing)return data._tolHealing;
+  const stream=await typed(data,'Healing','source'),out=healingSummary(data,stream);
+  // Tables are optional reconciliation evidence; unknown layouts are never treated as matching.
+  for(const x of out.fights){
+   x.reconciliation={status:'NOT VERIFIED'};
+   try{
+    const q='query TOLHealingCheck($code:String!,$fight:[Int]!,$source:Int!,$start:Float!,$end:Float!){reportData{report(code:$code){table(dataType:Healing,fightIDs:$fight,sourceID:$source,startTime:$start,endTime:$end,viewBy:Source)}}}';
+    const j=await gql(q,{code:data.ctx.code,fight:[x.f.id],source:data.ctx.player.id,start:x.f.startTime,end:x.f.endTime});
+    const rawTable=j?.data?.reportData?.report?.table,table=rawTable?.data||rawTable,entries=table?.entries;
+    const entry=Array.isArray(entries)?entries.find(e=>Number(e.id)===Number(data.ctx.player.id)):null;
+    if(entry&&number(entry.total)&&entry.total>=0){
+     const delta=entry.total-x.effective;
+     x.reconciliation={status:Math.abs(delta)<=1?'MATCH':'MISMATCH',tableEffective:entry.total,eventEffective:x.effective,delta};
+     if(Math.abs(delta)>1){out.complete=false;out.reason='WCL table/event healing mismatch.';}
+    }
+   }catch(e){x.reconciliation={status:'NOT VERIFIED',reason:String(e.message||e)};}
+   out.lines.push(x.f.name+' reconciliation: '+x.reconciliation.status+(x.reconciliation.tableEffective!==undefined?' — table '+count(x.reconciliation.tableEffective)+', events '+count(x.effective)+'.':'; table unavailable or payload not recognized.'));
+  }
+  data._tolHealing=out;return out;
+ }
+ function manaSnapshot(e){
+  // Cast events describe source resources; heal/damage snapshots can describe the target.
+  if(kind(e)!=='cast')return[];
+  return(Array.isArray(e.classResources)?e.classResources:[]).filter(r=>r.type===0||r.type==='0'||String(r.name||r.type).toLowerCase()==='mana').filter(r=>number(r.amount)&&r.amount>=0).map(r=>({amount:r.amount,max:number(r.max)&&r.max>0?r.max:null,timestamp:e.timestamp}));
+ }
+ async function restoration(data,typed){
+  if(!isResto(data))return null;
+  const incoming=await typed(data,'All','target');
+  const actor=Number(data.ctx.player.id),actors=new Map((data.ctx.report.masterData?.actors||[]).map(x=>[Number(x.id),x.name]));
+  const lines=['RESTORATION DRUID — COOLDOWNS, MANA & UTILITY'],fights=[];
+  const cds={'Innervate':360,"Nature's Swiftness":180,'Swiftmend':15};
+  const lastUse=new Map();
+  for(const row of [...data.rows].sort((a,b)=>a.f.startTime-b.f.startTime)){
+   const f=row.f,events=row.ev.all.filter(e=>Number(e.sourceID)===actor&&inFight(e,f));
+   const casts=events.filter(e=>kind(e)==='cast'),by=new Map(),timings=[];
+   casts.forEach(e=>{const id=identity(data,e);if(!id.resolved)return;const x=by.get(id.family)||[];x.push(e);by.set(id.family,x);});
+   const given=(by.get('Innervate')||[]).map(e=>({timestamp:e.timestamp,target:actors.get(Number(e.targetID))||'unresolved recipient',targetID:e.targetID}));
+   const received=incoming.all.filter(e=>Number(e.targetID)===actor&&inFight(e,f)&&identity(data,e).family==='Innervate'&&['applybuff','refreshbuff'].includes(kind(e)));
+   for(const [family,cd] of Object.entries(cds)){
+    const uses=(by.get(family)||[]).slice().sort((a,b)=>a.timestamp-b.timestamp);
+    for(const e of uses){const previous=lastUse.get(family);timings.push(family+' at '+sec(e.timestamp-f.startTime)+(previous!==undefined?'; '+sec(e.timestamp-previous)+' since prior observed use':''));lastUse.set(family,e.timestamp);}
+    const last=lastUse.get(family);
+    if(last!==undefined&&uses.length&&last+cd*1000<f.endTime)timings.push(family+': baseline cooldown ready for '+sec(f.endTime-(last+cd*1000))+' after its final cast; investigate a useful opportunity, not an automatic missed use.');
+   }
+   const samples=casts.flatMap(manaSnapshot);
+   const gains=incoming.all.filter(e=>Number(e.targetID)===actor&&inFight(e,f)&&['energize','resourcechange'].includes(kind(e))&&(e.resourceChangeType===0||e.resourceType===0||String(e.resourceType||'').toLowerCase()==='mana')).filter(e=>number(e.resourceChange));
+   const familyCounts=Array.from(by.entries()).filter(([n])=>['Rejuvenation','Regrowth','Healing Touch','Swiftmend','Tranquility','Innervate','Rebirth','Remove Curse','Abolish Poison','Cure Poison',"Nature's Swiftness",'Demonic Rune','Dark Rune','Restore Mana'].includes(n));
+   lines.push('',f.name+' — '+(f.kill?'KILL':'WIPE'),familyCounts.map(([n,x])=>n+': '+x.length+' casts').join('; ')||'No resolved Restoration/utility casts observed.');
+   lines.push('Innervate cast: '+(given.map(e=>sec(e.timestamp-f.startTime)+' → '+e.target).join('; ')||'0 observed')+'. Innervate received: '+received.length+' applications/refreshes; sources '+(received.map(e=>actors.get(Number(e.sourceID))||'unresolved caster').join(', ')||'none observed')+'.');
+   lines.push(...timings);
+   if(samples.length)lines.push('Mana snapshots on player casts: '+samples.length+' samples, '+Math.min(...samples.map(x=>x.amount))+'–'+Math.max(...samples.map(x=>x.amount))+' mana. Sparse samples do not establish continuous OOM time.');
+   else lines.push('Mana level: no usable source-cast snapshots returned.');
+   if(gains.length)lines.push('Explicit mana-change records: '+gains.length+'; net change '+gains.reduce((n,e)=>n+e.resourceChange,0)+'. Do not equate net change to gross restored mana.');
+   const consumables=events.filter(e=>kind(e)==='cast'&&['Demonic Rune','Dark Rune','Restore Mana'].includes(identity(data,e).family));
+   lines.push('Mana consumable/recovery casts: '+consumables.length+'. Restore Mana identifies an effect, not a uniquely identified inventory item.');
+   fights.push({f,by,given,received,timings,samples,gains,consumables});
+  }
+  return{lines,fights,complete:incoming.complete===true,reason:incoming.complete===true?'':'Incoming resource/buff stream incomplete.'};
+ }
+ function coaching(data,layers,resto){
+  const h=layers.get('Healing & overheal')||(layers.get('Performance & rotation')?.healing?layers.get('Performance & rotation'):null);
+  const selected=data.requestAreas.filter(x=>x!=='Actionable improvements').map(x=>layers.get(x));
+  const lines=['PLAYER-SPECIFIC HEALER COACHING',data.ctx.player.name+' — '+actualClass(data)+' — '+data.requestRole];
+  if(h){
+   const kills=h.fights.filter(x=>x.f.kill),best=kills.slice().sort((a,b)=>b.hps-a.hps)[0];
+   lines.push('','OVERALL',count(h.effective)+' effective healing, '+(h.seconds?h.effective/h.seconds:0).toFixed(1)+' weighted fight-duration HPS, '+pct(h.over,h.effective+h.over)+' overheal. Compare matched encounters and assignments before interpreting output differences.');
+   if(best)lines.push('','STRENGTH TO BUILD ON',best.f.name+' was your highest observed HPS completed attempt: '+best.hps.toFixed(1)+' HPS across '+best.seconds.toFixed(1)+' seconds. Inspect its spell mix as a concrete reference for your other encounters.');
+   lines.push('','ENCOUNTER REVIEW');
+   for(const x of h.fights){
+    const top=Array.from(x.spells.values()).sort((a,b)=>b.effective-a.effective)[0],waste=Array.from(x.spells.values()).filter(s=>s.effective+s.over>0).sort((a,b)=>b.over-a.over)[0];
+    lines.push(x.f.name+' ('+(x.f.kill?'kill':'wipe')+'): '+x.hps.toFixed(1)+' HPS; '+pct(x.over,x.effective+x.over)+' overheal'+(top?'; '+top.name+' supplied '+pct(top.effective,x.effective)+' of effective healing':'')+'.');
+    if(waste?.over>0)lines.push('Review '+waste.name+' first for efficiency on '+x.f.name+': '+count(waste.over)+' overhealing ('+pct(waste.over,waste.effective+waste.over)+'). Check rank, target selection and overlapping healing before reducing casts; overhealing alone does not prove poor play.');
+   }
+   lines.push('','NEXT-RAID PRIORITIES');
+   const waste=Array.from(h.spells.values()).sort((a,b)=>b.over-a.over)[0];
+   lines.push(waste?.over>0?'1. Review '+waste.name+' on the named attempts above; test whether rank/target adjustments retain useful healing while reducing waste.':'1. Preserve the spell/target choices that produced effective healing; no overheal-based weakness was established.');
+   if(resto){
+    const given=resto.fights.reduce((n,x)=>n+x.given.length,0),cons=resto.fights.reduce((n,x)=>n+x.consumables.length,0);
+    lines.push('2. '+given+' Innervate casts and '+cons+' mana-recovery casts were observed. Use the recipient/timing evidence below to agree an Innervate assignment and consumable plan; no mana-starvation claim follows from counts alone.');
+    const rebirth=resto.fights.reduce((n,x)=>n+(x.by.get('Rebirth')||[]).length,0);
+    lines.push('3. '+rebirth+' Rebirth casts were observed. Review those recovery attempts with the raid lead; availability and a suitable target are required before treating absence as a missed opportunity.');
+   }else lines.push('2. Review recorded utility and cooldown evidence alongside the named healing attempts.','3. Confirm healing assignment and encounter demand before treating lower HPS as a weakness.');
+  }else lines.push('Healing was not selected. Coaching is limited to the selected evidence; select Healing & overheal for encounter-level healing guidance.');
+  if(resto)lines.push('',...resto.lines);
+  const utility=layers.get('Dispels / interrupts / utility'),deaths=layers.get('Deaths & survivability');
+  if(utility?.complete)lines.push('','UTILITY OUTCOMES',utility.dispels+' logged dispels and '+utility.interrupts+' logged interrupts; utility casts are listed separately from successful outcomes.');
+  if(deaths?.complete)lines.push('','SURVIVABILITY',deaths.deaths+' explicit player deaths in the selected attempts. Review those attempts before assigning cause.');
+  return{lines,complete:selected.length>0&&selected.every(x=>x?.complete===true)&&(!resto||resto.complete),reason:'All selected evidence must be complete.'};
+ }
+ window.tolEvidenceV2=Object.freeze({resolver,attach,identity,isHealer,isResto,healingSummary,healing,restoration,coaching,manaSnapshot,gameId});
+})();
+
+</script>
 <script id="tol-performance-handoff-repair">
 /* Tree of Logs — complete evidence coordinator.
    Every requested layer must have completed WCL retrieval before READY.
@@ -3788,9 +3981,11 @@ document.addEventListener('DOMContentLoaded',()=>{
    const j=await r.json();if(!r.ok||j.errors?.length)throw new Error(j.errors?.map(x=>x.message).join(' | ')||'Warcraft Logs request failed ('+r.status+')');return j;
  }
  async function typed(data,dt,mode){
+   data._tolStreams??=new Map(); const cacheKey=dt+'|'+mode;
+   if(data._tolStreams.has(cacheKey))return data._tolStreams.get(cacheKey);
    const fights=data.ctx.fights, start=Math.min(...fights.map(f=>f.startTime)), end=Math.max(...fights.map(f=>f.endTime));
    const ids=fights.map(f=>f.id), actor=data.ctx.player.id;
-   const q=`query TOLLayer($code:String!,$dt:EventDataType!,$start:Float!,$end:Float!,$fights:[Int]!,$source:Int,$target:Int){reportData{report(code:$code){events(dataType:$dt,fightIDs:$fights,startTime:$start,endTime:$end,sourceID:$source,targetID:$target,limit:10000){data nextPageTimestamp}}}}`;
+   const q=`query TOLLayer($code:String!,$dt:EventDataType!,$start:Float!,$end:Float!,$fights:[Int]!,$source:Int,$target:Int){reportData{report(code:$code){events(dataType:$dt,fightIDs:$fights,startTime:$start,endTime:$end,sourceID:$source,targetID:$target,includeResources:true,limit:10000){data nextPageTimestamp}}}}`;
    let all=[],next=start,pages=0;
    while(true){
      if(pages>=100)throw new Error(dt+' retrieval stopped at pagination safety limit.');
@@ -3802,15 +3997,15 @@ document.addEventListener('DOMContentLoaded',()=>{
      const n=ev.nextPageTimestamp;if(typeof n!=='number'||!Number.isFinite(n)||n<=next||n>end)throw new Error(dt+' returned an invalid pagination cursor.');
      next=n;
    }
-   return{all,pages,complete:true};
+   const stream={all:data.identity?data.identity.enrich(all):all,pages,complete:true};data._tolStreams.set(cacheKey,stream);return stream;
  }
  function performance(data){
    const lines=['PERFORMANCE & ROTATION — RETRIEVED EVIDENCE'],damage=new Map(),casts=new Map();let total=0,seconds=0,castCount=0;
    for(const {f,ev} of data.rows){
      const actorID=Number(data.ctx.player.id),sourceEvents=ev.all.filter(e=>Number(e?.sourceID)===actorID),duration=(f.endTime-f.startTime)/1000,de=sourceEvents.filter(e=>String(e.type).toLowerCase()==='damage'),ce=sourceEvents.filter(e=>String(e.type).toLowerCase()==='cast');
      const ld=new Map(),lc=new Map();let amount=0;
-     for(const e of de){if(typeof e.amount!=='number'||!Number.isFinite(e.amount)||e.amount<0)throw new Error('Invalid damage amount in fight #'+f.id+'.');const id=core.abilityId(e),name=TOL_CLASSIC_ABILITY_NAMES[Number(id)]||core.abilityName(e),k=id?'id:'+id:'name:'+name;for(const map of [damage,ld]){const x=map.get(k)||{name,id,events:0,damage:0};x.events++;x.damage+=e.amount;map.set(k,x);}amount+=e.amount;}
-     for(const e of ce){const id=core.abilityId(e),name=TOL_CLASSIC_ABILITY_NAMES[Number(id)]||core.abilityName(e),k=id?'id:'+id:'name:'+name;for(const map of [casts,lc]){const x=map.get(k)||{name,id,count:0};x.count++;map.set(k,x);}}
+     for(const e of de){if(typeof e.amount!=='number'||!Number.isFinite(e.amount)||e.amount<0)throw new Error('Invalid damage amount in fight #'+f.id+'.');const id=core.abilityId(e),name=core.abilityName(e),k=id?'id:'+id:'name:'+name;for(const map of [damage,ld]){const x=map.get(k)||{name,id,events:0,damage:0};x.events++;x.damage+=e.amount;map.set(k,x);}amount+=e.amount;}
+     for(const e of ce){const id=core.abilityId(e),name=core.abilityName(e),k=id?'id:'+id:'name:'+name;for(const map of [casts,lc]){const x=map.get(k)||{name,id,count:0};x.count++;map.set(k,x);}}
      total+=amount;seconds+=duration;castCount+=ce.length;
      lines.push('','#'+f.id+' '+f.name+' — '+(f.kill?'KILL':'WIPE'),'Time range: '+f.startTime+'–'+f.endTime+' ms; '+duration.toFixed(1)+' seconds; '+ev.pages+' page(s), pagination exhausted.','Observed source damage: '+count(amount)+'; DPS over full fight: '+(duration?amount/duration:0).toFixed(1)+'; damage events: '+de.length+'; cast events: '+ce.length,'Ability damage: '+(Array.from(ld.values()).sort((a,b)=>b.damage-a.damage).map(x=>x.name+' ['+x.id+']: '+x.events+' events / '+count(x.damage)+' damage').join('; ')||'None returned'),'Casts: '+(Array.from(lc.values()).map(x=>x.name+' ['+x.id+']: '+x.count).join('; ')||'None returned'));
    }
@@ -3820,12 +4015,13 @@ document.addEventListener('DOMContentLoaded',()=>{
    return{lines,complete:true,reason:'',total,castCount,damage,casts,seconds};
  }
 
- const TOL_ABILITY_NAMES={1:'Melee',3:'Pistol Shot',75:'Auto Shot',475:'Remove Lesser Curse',1680:'Whirlwind',1719:'Recklessness',2457:'Battle Stance',2458:'Berserker Stance',2687:'Bloodrage',4987:'Cleanse',6554:'Pummel',7373:'Hamstring',11585:'Overpower',11597:'Sunder Armor',12328:'Death Wish',12721:'Deep Wounds',18499:'Berserker Rage',19943:'Flash Heal',20569:'Cleave',20615:'Intercept',20617:'Intercept',20647:'Execute',23888:'Bloodthirst',23891:'Bloodthirst',23894:'Bloodthirst',25286:'Heroic Strike',25289:'Battle Shout',25299:'Revenge',25891:'Greater Blessing of Salvation',25898:'Greater Blessing of Kings',17528:'Mighty Rage Potion',12970:'Flurry',20007:'Holy Strength',29131:'Bloodrage',6615:'Free Action Potion',14204:'Enrage',16624:'Thorium Shield Spike',18125:'Blessed Sunfruit',17538:'Elixir of the Mongoose',8221:'Savory Deviate Delight',16591:'Noggenfogger Elixir',16595:'Noggenfogger Elixir',17546:'Greater Nature Protection Potion',10667:'Rage of Ages',22820:"Slip'kik's Savvy",23768:"Sayge's Dark Fortune of Damage",22818:"Mol'dar's Moxie",22817:"Fengus' Ferocity",15366:'Songflower Serenade',24427:'Diamond Flask',26400:'Arcane Shroud',17038:'Winterfall Firewater',9830:'Shred',9850:'Claw',31018:'Ferocious Bite',17392:'Faerie Fire (Feral)',9821:'Dash',16864:'Omen of Clarity',29166:'Innervate',9910:'Thorns',9881:'Maul',2893:'Abolish Poison'};
+ const TOL_ABILITY_NAMES={1:'Melee',75:'Auto Shot',475:'Remove Lesser Curse',1680:'Whirlwind',1719:'Recklessness',2457:'Battle Stance',2458:'Berserker Stance',2687:'Bloodrage',4987:'Cleanse',6554:'Pummel',7373:'Hamstring',11585:'Overpower',11597:'Sunder Armor',12328:'Death Wish',12721:'Deep Wounds',18499:'Berserker Rage',19943:'Flash of Light',20569:'Cleave',20615:'Intercept',20617:'Intercept',20647:'Execute',23888:'Bloodthirst',23891:'Bloodthirst',23894:'Bloodthirst',25286:'Heroic Strike',25289:'Battle Shout',25299:'Rejuvenation',25891:'Earthstrike',25898:'Greater Blessing of Kings',17528:'Mighty Rage Potion',12970:'Flurry',20007:'Holy Strength',29131:'Bloodrage',6615:'Free Action Potion',14204:'Enrage',16624:'Thorium Shield Spike',18125:'Blessed Sunfruit',17538:'Elixir of the Mongoose',8221:'Savory Deviate Delight',16591:'Noggenfogger Elixir',16595:'Noggenfogger Elixir',17546:'Greater Nature Protection Potion',10667:'Rage of Ages',22820:"Slip'kik's Savvy",23768:"Sayge's Dark Fortune of Damage",22818:"Mol'dar's Moxie",22817:"Fengus' Ferocity",15366:'Songflower Serenade',24427:'Diamond Flask',26400:'Arcane Shroud',17038:'Winterfall Firewater',9830:'Shred',9850:'Claw',31018:'Ferocious Bite',17392:'Faerie Fire (Feral)',9821:'Dash',16864:'Omen of Clarity',29166:'Innervate',9910:'Thorns',9881:'Maul',2893:'Abolish Poison'};
  const TOL_ITEM_NAMES={12640:'Lionheart Helm',21664:'Barbed Choker',21330:"Conqueror's Spaulders",23226:'Ghoul Skin Tunic',19137:'Onslaught Girdle',16479:"Marshal's Lamellar Gloves",19387:'Chromatic Boots',21618:'Hive Defiler Wristguards',14551:"Edgemaster's Handguards",19432:'Circle of Applied Force',18821:'Quick Strike Ring',21647:'Fetish of the Sand Reaver',19406:'Drake Fang Talisman',19436:'Cloak of Draconic Might',12584:"Grand Marshal's Longsword",23456:"Grand Marshal's Swiftblade",23557:'Larvae of the Great Worm',5976:'Guild Tabard',21180:'Earthstrike',20130:'Diamond Flask',14617:'Sawbones Shirt',8345:'Wolfshead Helm',19377:"Prestor's Talisman of Connivery",21665:'Mantle of Wicked Revenge',6795:"White Swashbuckler's Shirt",21680:'Vest of Swift Execution',20216:'Belt of Preserved Heads',20665:'Abyssal Leather Leggings',19381:'Boots of the Shadow Flame',19687:'Primal Batskin Bracers',19686:'Primal Batskin Gloves',17063:'Band of Accuria',21205:'Signet Ring of the Bronze Dragonflight',13965:"Blackhand's Breadth",11815:'Hand of Justice',21268:'Blessed Qiraji War Hammer',13385:'Tome of Knowledge',22397:'Idol of Ferocity'};
  const TOL_ENCHANT_NAMES={1506:'+8 Strength',2606:'+30 Attack Power',911:'+7 Agility',1885:'+9 Strength',2564:'+15 Agility',2621:'2% Threat',1900:'Crusader',1891:'+4 All Stats',1887:'+7 Agility'};
  function tolAbilityName(id,raw){
    id=Number(id)||0;
-   const n=TOL_ABILITY_NAMES[id]||String(raw||'').replace(/^Ability\s+\d+$/i,'').trim();
+   const clean=String(raw||'').replace(/^Ability\s+\d+$/i,'').trim();
+   const n=clean&&!/^(?:Unknown|Unresolved)/i.test(clean)?clean:TOL_ABILITY_NAMES[id];
    return n||'Unresolved';
  }
  function tolItemName(id){id=Number(id)||0;return TOL_ITEM_NAMES[id]||('Unresolved item ['+id+']');}
@@ -3876,14 +4072,7 @@ document.addEventListener('DOMContentLoaded',()=>{
    lines.push('Vanilla Warcraft Logs raw-event mapping validated from the live report payload: hitType 6 = glancing, 7 = miss, 8 = dodge. The mapping is applied only to retrieved attack events; zero-outcome fights remain valid zero results.');
    return{lines,complete:data.rows.every(x=>x.ev.complete===true),reason:'',totals:T};
  }
- async function healing(data){
-   const ev=await typed(data,'Healing','source'), by=new Map();let effective=0,over=0;
-   for(const e of ev.all){const a=Math.max(0,Number(e.amount)||0),o=Math.max(0,Number(e.overheal)||0),n=ability(e),x=by.get(n)||{events:0,effective:0,over:0};x.events++;x.effective+=a;x.over+=o;by.set(n,x);effective+=a;over+=o;}
-   const raw=effective+over,lines=['HEALING & OVERHEAL — RETRIEVED EVIDENCE','Pages: '+ev.pages+'; pagination exhausted.','Healing events: '+ev.all.length,'Effective healing: '+count(effective),'Overheal: '+count(over),'Overheal share of raw healing: '+core.pct(over,raw),'','ABILITY HEALING'];
-   Array.from(by.entries()).sort((a,b)=>b[1].effective-a[1].effective).forEach(([n,x])=>lines.push(n+' — '+x.events+' events; '+count(x.effective)+' effective; '+count(x.over)+' overheal'));
-   if(!ev.all.length)lines.push('No source healing events were returned for this player in the selected fights.');
-   return{lines,complete:ev.complete,reason:'',effective,over,events:ev.all.length};
- }
+ async function healing(data){return window.tolEvidenceV2.healing(data,typed,gql);}
  async function deaths(data){
    /* WCL Deaths is a table-style dataset, not a literal stream of one death event
       per returned row.  Use the already-complete source event stream and count
@@ -3962,8 +4151,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 
  function derivedEvidence(data){
    const actorID=Number(data.ctx.player.id);
-   const roleText=String(data?.ctx?.role||data?.ctx?.classRole||data?.request?.fields?.[2]||'').toLowerCase();
-   const classText=String(data?.ctx?.player?.type||data?.ctx?.player?.class||'').toLowerCase();
+   const roleText=String(data?.requestRole||data?.ctx?.role||data?.ctx?.classRole||data?.request?.fields?.[2]||'').toLowerCase();
+   const classText=String(data?.ctx?.player?.subType||data?.ctx?.player?.type||data?.ctx?.player?.class||'').toLowerCase();
    const known=(classText.includes('warrior')||roleText.includes('warrior'))?{
      12328:{name:'Death Wish',cd:180},1719:{name:'Recklessness',cd:1800},17528:{name:'Mighty Rage Potion',cd:120},
      2687:{name:'Bloodrage',cd:60},1680:{name:'Whirlwind',cd:10},6554:{name:'Pummel',cd:10}
@@ -4071,9 +4260,11 @@ document.addEventListener('DOMContentLoaded',()=>{
    auth();assertCurrent(run);const want=run.request.requested;if(!want.length)throw new Error('Select at least one evidence category.');
    const data=await core.raidData((i,n,f)=>{assertCurrent(run);auth();status('Retrieving base evidence '+i+'/'+n+': '+f.name+'…');});
    assertCurrent(run);auth();
+   data.requestRole=run.request.fields[2];data.requestAreas=want;
+   window.tolEvidenceV2.attach(data);
    if(!data.rows.length||data.rows.length!==data.ctx.fights.length||new Set(data.rows.map(x=>x.f.id)).size!==data.ctx.fights.length||data.rows.some(x=>x.ev.complete!==true))throw new Error('Not every selected fight has complete base event coverage.');
    const layers=new Map();
-   if(want.includes(P))layers.set(P,performance(data));
+   if(want.includes(P))layers.set(P,window.tolEvidenceV2.isHealer(data)?await healing(data):performance(data));
    if(want.includes(A))layers.set(A,accuracy(data));
    const jobs=[];
    if(want.includes(H))jobs.push([H,()=>healing(data)]);
@@ -4082,7 +4273,10 @@ document.addEventListener('DOMContentLoaded',()=>{
    if(want.includes(B))jobs.push([B,()=>buffs(data)]);
    if(want.includes(G))jobs.push([G,()=>gear(data)]);
    for(const [name,fn] of jobs){assertCurrent(run);auth();status('Retrieving '+name+'…');layers.set(name,await fn());}
-   if(want.includes(I)){
+   const resto=window.tolEvidenceV2.isResto(data)?await window.tolEvidenceV2.restoration(data,typed):null;
+   if(want.includes(I)&&window.tolEvidenceV2.isHealer(data)){
+     layers.set(I,window.tolEvidenceV2.coaching(data,layers,resto));
+   }else if(want.includes(I)){
      const base=want.filter(n=>n!==I).map(n=>layers.get(n)),actions=[];
      const p=layers.get(P),a=layers.get(A),h=layers.get(H),d=layers.get(D),u=layers.get(U),b=layers.get(B),g=layers.get(G);
      if(p?.complete){
@@ -4106,10 +4300,10 @@ document.addEventListener('DOMContentLoaded',()=>{
      if(bestKill)take.push('• Strongest completed-boss output: '+bestKill.dps.toFixed(1)+' DPS on '+bestKill.name+'. Average observed DPS across '+kills.length+' completed boss kills: '+avgKill.toFixed(1)+'.');
      if(topDamage.length)take.push('• Damage profile: '+topDamage.map(x=>tolAbilityName(x.id,x.name)+' '+core.pct(x.damage,p.total)).join('; ')+'.');
      {
-       const rt=String(data?.ctx?.role||data?.ctx?.classRole||data?.request?.fields?.[2]||'').toLowerCase();
-       const ct=String(data?.ctx?.player?.type||data?.ctx?.player?.class||'').toLowerCase();
+       const rt=String(data?.requestRole||data?.ctx?.role||data?.ctx?.classRole||data?.request?.fields?.[2]||'').toLowerCase();
+       const ct=String(data?.ctx?.player?.subType||data?.ctx?.player?.type||data?.ctx?.player?.class||'').toLowerCase();
        if(ct.includes('warrior')||rt.includes('warrior')){
-         take.push('• Cooldown / consumable usage recorded in the selected attempts: Death Wish '+castById(12328)+'; Recklessness '+castById(1719)+'; Mighty Rage Potion '+castById(17528)+'; Bloodrage '+castById(2687)+'.');
+         if(data.ctx.player.subType==='Warrior')take.push('• Cooldown / consumable usage recorded in the selected attempts: Death Wish '+castById(12328)+'; Recklessness '+castById(1719)+'; Mighty Rage Potion '+castById(17528)+'; Bloodrage '+castById(2687)+'.');
        }else if(rt.includes('feral')||ct.includes('druid')){
          take.push('• Druid cooldown / consumable usage recorded in the selected attempts: Innervate '+castById(29166)+'; Greater Nature Protection Potion '+castById(17546)+'. Feral form/rotation timing is analyzed separately in DERIVED EVIDENCE.');
        }
@@ -4124,11 +4318,12 @@ document.addEventListener('DOMContentLoaded',()=>{
    }
    }
    for(const name of want)if(!layers.has(name))layers.set(name,{lines:[],complete:false,reason:'Requested layer did not initialize.'});
-   const complete=want.every(name=>layers.get(name)?.complete===true);
-   const derived=derivedEvidence(data);
+   const complete=want.every(name=>layers.get(name)?.complete===true)&&(!resto||resto.complete);
+   const derived=window.tolEvidenceV2.isHealer(data)?(resto||{lines:['HEALER TIMING','Use the selected healing and utility evidence; Warrior rotation rules do not apply.'],complete:true}):derivedEvidence(data);
    const scopeLabel=run.request.fields[3]||'Review'; const lines=['TREE OF LOGS — '+scopeLabel.toUpperCase()+' PLAYER REVIEW','','Report: '+data.ctx.code+' — '+data.ctx.report.title,'Character: '+data.ctx.player.name+' (Actor ID '+data.ctx.player.id+')','Scope: '+run.request.fields[3],'Boss attempts analyzed: '+data.rows.length,'Unique encounters: '+new Set(data.rows.map(x=>x.f.name)).size,'Encounter names: '+Array.from(new Set(data.rows.map(x=>x.f.name))).join('; '),'Internal WCL fight IDs (evidence trace only — never show these in the player-facing review/PDF): '+data.rows.map(x=>x.f.id).join(', '),'Selected review areas: '+want.join('; ')];
    for(const name of want)lines.push('',...layers.get(name).lines);
    lines.push('',...derived.lines);
+   if(data.identity.warnings.size)lines.push('','SPELL IDENTITY CONFLICTS — unresolved, never relabelled',...data.identity.warnings);
    lines.push('','REQUESTED-EVIDENCE COMPLETENESS');for(const name of want){const x=layers.get(name);lines.push((x.complete?'COMPLETE':'INCOMPLETE')+' — '+name+(x.complete?'':': '+x.reason));}
    lines.push('',complete?'Selected evidence is complete.':'NOT COMPLETE — Final Handoff is blocked.');
    const text=lines.join('\n');evidenceState={request:run.request,revision:run.revision,layers,derived,complete,text,fights:data.rows.map(x=>x.f.id)};
@@ -4149,7 +4344,8 @@ document.addEventListener('DOMContentLoaded',()=>{
 'Do not produce a statistics dump with a short generic conclusion. Statistics are supporting evidence; the primary deliverable is a detailed analyst review written for the player.',
 'For every major requested evidence area, explain: (1) what the evidence shows, (2) what it likely means for this player, (3) what cannot be concluded from the evidence, and (4) what the player should do with that information next raid.',
 'Cross-reference evidence between fights and categories when useful. Compare strong and weak completed kills, cooldown/consumable use, rotation/cast patterns, deaths, accuracy, buffs, gear/loadout changes, and utility only where the retrieved evidence supports the comparison.',
-'Required player-facing sections when supported: Overall Raid Assessment; What You Did Well; Rotation & Damage Analysis; Fight-to-Fight Comparison; Cooldowns & Consumables; Survivability / Mechanics; Accuracy; Gear / Build Observations; Where Performance Is Being Left on the Table; Three Priorities for the Next Raid; Final Coaching Summary.',
+'Required player-facing sections when supported: Overall Raid Assessment; What You Did Well; Healing & Mana Analysis for healers, or Rotation & Damage Analysis for damage roles; Fight-to-Fight Comparison; Cooldowns & Consumables; Survivability / Mechanics; Accuracy; Gear / Build Observations; Where Performance Is Being Left on the Table; Three Priorities for the Next Raid; Final Coaching Summary.',
+'For a verified healer, lead with boss-by-boss effective healing, fight-duration HPS, spell/rank mix, overhealing, healing casts versus ticks, utility, and observed mana evidence. Do not apply Warrior cooldown or DPS recommendations to a Restoration Druid. Separate observed facts from conditional interpretation, and state any remaining limitation once where it matters.',
 'The coaching must be specific to this player and this raid. Explain why each recommendation matters and cite the retrieved evidence in plain WoW language.',
 'PLAYER QUESTION / INVESTIGATION DIRECTIVE: If the Review Order contains a player question or investigation request, treat it as an explicit analysis assignment. Investigate it using the retrieved evidence, answer it directly in a clearly labeled section, connect the answer to coaching, and state plainly when the available evidence cannot prove part of the answer. Do not ignore or merely repeat the question.',
 'Do not invent causes, ideal rotations, encounter mistakes, gear upgrades, talent choices, or cooldown failures that the evidence does not establish. When evidence is insufficient, say what can and cannot be concluded.',
