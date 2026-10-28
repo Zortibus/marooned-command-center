@@ -1296,6 +1296,34 @@ html.tol-temporarily-locked #mccTreeLogs > #tolTemporaryLock{display:block!impor
 </style></head><body>
 <div class="mccCenteredGlobalNav" id="mccGlobalNav"><button class="active" id="mccHomeTab" onclick="mccShowMain()">⚔ Marooned Command Center</button><button id="mccTreeTab" onclick="mccShowTreeLogs()">🌳 Tree of Logs</button><button id="mccReadmeTab" onclick="mccShowReadme()">📖 README / Start Here</button></div>
 <section id="mccTreeLogs">
+<!-- MCC RAID PHASE 1 ADDITION: existing player markup is untouched. -->
+<style id="mccRaidLayout">
+#mccRaidPanel table,#mccHistoryPanel table{table-layout:auto!important;width:max-content!important;min-width:100%;border-collapse:collapse}
+#mccRaidPanel th,#mccRaidPanel td,#mccHistoryPanel th,#mccHistoryPanel td{width:auto!important;min-width:105px;padding:10px 12px;white-space:nowrap;overflow-wrap:normal}
+#mccRaidPanel th:first-child,#mccRaidPanel td:first-child,#mccHistoryPanel th:first-child,#mccHistoryPanel td:first-child{min-width:150px}
+#mccRaidPanel th:nth-child(2),#mccRaidPanel td:nth-child(2),#mccHistoryPanel th:nth-child(2),#mccHistoryPanel td:nth-child(2){min-width:175px}
+#mccRaidPanel pre,#mccHistoryPanel pre{overflow:auto;max-width:100%}
+#mccRaidPanel input,#mccHistoryPanel input,#mccHistoryPanel select{max-width:100%;box-sizing:border-box}
+</style>
+<div id="mccRaidModeBar" class="treeCard" style="margin-bottom:16px">
+ <h2>🌳 Tree of Logs — Analysis mode</h2>
+ <div class="treeActions"><button type="button" id="raidIndividual">Individual player</button><button type="button" id="raidFull">Full Raid Analysis</button><button type="button" id="historyMode">Historical Multi-Raid Analysis</button></div>
+ <div class="treeSmall">Local raid archives and portable exports.</div>
+
+</div>
+<div id="mccRaidPanel" class="treeCard" hidden>
+ <h2>Full Raid Analysis</h2>
+ <p>Analyze everyone in one report, including boss kills, wipes, and recorded trash combat. Use the existing Warcraft Logs connection. No character name is required.</p>
+ <label for="raidUrl">Warcraft Logs report URL</label>
+ <input id="raidUrl" type="url" style="width:100%;box-sizing:border-box;margin:8px 0;padding:12px" placeholder="https://www.warcraftlogs.com/reports/1NwBdtbVJy8chLCj">
+ <div class="treeActions"><button type="button" id="raidAnalyze">Analyze full raid</button><button type="button" id="raidCancel" disabled>Cancel</button><button type="button" id="raidConnect">Show existing WCL connection</button></div>
+ <p id="raidStatus" role="status" aria-live="polite">Ready. Existing WCL login is required for live retrieval.</p>
+ <div class="treeActions"><button type="button" id="raidSave" disabled>Save locally</button><select id="raidArchive" aria-label="Saved raid snapshots"><option value="">Saved raids…</option></select><button type="button" id="raidLoad">Reload saved raid</button><button type="button" id="raidJson" disabled>Export JSON</button><button type="button" id="raidCsv" disabled>Export CSV</button><button type="button" id="raidReadable" disabled>Export readable report</button><label>Import snapshot JSON <input id="raidImport" type="file" accept="application/json,.json"></label></div>
+ <div class="treeSmall">Local saves belong to this browser and address. Export JSON for a portable backup. No credentials are saved in snapshots.</div>
+ <details><summary>Import snapshot from pasted JSON</summary><textarea id="raidPaste" rows="4" style="width:100%;box-sizing:border-box" aria-label="Snapshot JSON text"></textarea><button type="button" id="raidPasteImport">Import pasted snapshot</button></details>
+ <div id="raidResults"></div>
+</div>
+
 <div id="tolTemporaryLock" aria-labelledby="tolTemporaryLockHeading">
  <div class="tolLockIcon" aria-hidden="true">🌳 🔒</div>
  <h1 id="tolTemporaryLockHeading">TREE OF LOGS — UNDER CONSTRUCTION</h1>
@@ -1330,6 +1358,22 @@ html.tol-temporarily-locked #mccTreeLogs > #tolTemporaryLock{display:block!impor
 <div><div class="treeCard"><h2>📜 Review Order</h2><div class="treeHelp">This is the analysis ticket. Copy it into ChatGPT with the report link when you are ready to make the PDF.</div><div class="treeOrder" id="tolOrder">No order built yet.</div><div class="treeActions"><button type="button" onclick="tolCopyOrder()">📋 Copy Order</button></div><div class="treeSmall">Phase 1 keeps the Warcraft Logs credentials out of the public webpage. The report link + structured order is the safe handoff for analysis.</div></div>
 <div class="treeCard" style="margin-top:16px" id="tolApiCard"><h2>🔗 Warcraft Logs Connection</h2><div class="treeHelp">Connect Tree of Logs to Warcraft Logs without putting a Client Secret in the public Command Center. Browser login uses OAuth PKCE.</div><div class="treeField full" style="margin-top:12px"><label>Warcraft Logs Client ID</label><input id="tolWclClientId" type="text" placeholder="Paste Client ID only — never paste your Client Secret here"></div><div class="treeActions" style="margin-top:10px"><button type="button" class="primary" onclick="tolWclConnect()">🔐 Connect Warcraft Logs</button><button type="button" onclick="tolWclDisconnect()">Disconnect</button></div><div class="treeSmall" id="tolWclStatus" style="margin-top:9px">Not connected. Your Client ID is stored only in this browser.</div><div class="treeActions" style="margin-top:10px"><button type="button" onclick="tolWclFetchReport()">📜 Load Report</button><button type="button" class="primary" onclick="tolWclFetchPlayerFight()">🌳 Find Player + Fight</button><button type="button" class="primary" onclick="tolWclFetchCombatEvents()">⚔️ Load Combat Events</button><button type="button" class="primary" onclick="tolWclAnalyzeHitTable()">🧭 Validate Hit Table</button><button type="button" class="primary" onclick="tolWclActionableReview()">🎯 Build Actionable Review</button><button type="button" class="primary" onclick="tolWclFinalHandoff()">📦 Build Final Handoff</button><button type="button" onclick="tolWclCopyFinalHandoff()">📋 Copy Final Handoff</button><button type="button" id="tolSaveCompletedReport">✅ Save Completed Report</button></div><div class="treeSmall" id="tolWclReportStatus" style="margin-top:9px">Paste a Warcraft Logs report URL above, then test the live connection.</div><div class="treeOrder" id="tolWclReportResult" style="display:none;margin-top:10px;min-height:0"></div><div class="treeSmall" style="margin-top:7px;color:#e8c85c">Important: never place the Warcraft Logs Client Secret in this HTML or in GitHub Pages.</div></div><div class="treeCard" style="margin-top:16px" id="tolQueueCard"><h2>📬 Raid Review Queue</h2><div class="treeHelp">Guild requests live here: Waiting → In Review → Complete → Archived. Completed reviews can be read here; PDF is optional.</div><div class="treeActions"><button type="button" id="tolQueueRefresh">↻ Refresh Queue</button><select id="tolQueueFilter"><option value="active">Active</option><option value="waiting">Waiting</option><option value="in_review">In Review</option><option value="complete">Complete</option><option value="archived">Archived</option><option value="all">All</option></select></div><div id="tolQueueList" class="treeQueueList"><div class="treeSmall">Loading queue…</div></div><div id="tolQueueReport" class="treeOrder" style="display:none;margin-top:12px"></div></div>
 <div class="treeCard" style="margin-top:16px"><h2>🍕 How It Works</h2><div class="treeSteps"><div class="treeStep"><b>1</b><p>Guild member asks for a review and gives you their character/report.</p></div><div class="treeStep"><b>2</b><p>Build the Tree of Logs order here. No giant pile of screenshots or page-by-page copy/paste.</p></div><div class="treeStep"><b>3</b><p>Use the order and Warcraft Logs report for the detailed analysis.</p></div><div class="treeStep"><b>4</b><p>Generate the polished player PDF and send it back.</p></div></div><div class="treePizza"><b>Basically:</b> they order the analysis, Tree of Logs writes the ticket, and you deliver the PDF. Raid-analysis pizza delivery. 🍕</div></div></div></div>
+<div id="mccHistoryPanel" class="treeCard" hidden>
+ <h2>Historical Multi-Raid Analysis</h2>
+ <p>Analyze multiple reports with the same full-raid processing. Add future reports as new lines. Imported snapshots work offline.</p>
+ <label for="historyUrls">Warcraft Logs report URLs or IDs (one per line)</label><textarea id="historyUrls" rows="9" style="width:100%;box-sizing:border-box"></textarea>
+ <div class="treeActions"><button type="button" id="historyDefaults">Load eight Naxxramas report IDs</button><button type="button" id="historyFetch">Retrieve reports</button><button type="button" id="historyCancel" disabled>Cancel retrieval</button><button type="button" id="historyUseArchive">Add locally saved raid snapshots</button><label>Import snapshots or dataset JSON <input type="file" id="historyImport" multiple accept=".json,application/json"></label></div>
+ <div id="historyProgress" role="status" aria-live="polite">No reports loaded.</div><div id="historySources"></div>
+ <details><summary>Import from pasted JSON</summary><textarea id="historyPaste" rows="4" style="width:100%;box-sizing:border-box" aria-label="Historical dataset or snapshots JSON text"></textarea><button type="button" id="historyPasteImport">Import pasted historical JSON</button></details>
+ <label for="historyPolicy">Player identity matching</label><select id="historyPolicy"><option value="strict">Keep report-local identities separate</option><option value="exact-name-server-class">Exact name/server/class matches (provisional)</option></select>
+ <p>Strict matching preserves unknown identities. Provisional matching enables candidate histories without claiming verified identity. Confirm links below before using loot considerations.</p>
+ <details><summary>Confirm identities or link renamed/transferred characters</summary><p>Assign the same nonempty group label to rows belonging to one player. A report cannot contain two actors in one identity group. Leave blank to use the selected matching policy.</p><div id="historyIdentityEditor" style="max-height:350px;overflow:auto"></div><button type="button" id="historyApplyIdentity">Apply confirmed links</button></details>
+ <div class="treeActions"><button type="button" id="historyBuild">Build historical analysis</button><label>Class <select id="historyClass"><option value="">All classes</option></select></label><label>Role <select id="historyRole"><option value="">All roles</option></select></label></div>
+ <label for="historyName">Dataset name</label><input id="historyName" value="Marooned Naxxramas history">
+ <div class="treeActions"><button type="button" id="historySave" disabled>Save dataset locally</button><select id="historyArchive" aria-label="Saved historical datasets"><option value="">Saved datasets…</option></select><button type="button" id="historyLoad">Reload dataset</button><button type="button" id="historyJson" disabled>Export dataset JSON</button><button type="button" id="historyCsv" disabled>Export leaderboard CSV</button><button type="button" id="historyReadable" disabled>Export readable report</button></div>
+ <div id="historyResults"></div>
+ <h3>Compare players</h3><select id="historyCompareA" aria-label="First comparison player"></select><select id="historyCompareB" aria-label="Second comparison player"></select><button type="button" id="historyCompare">Compare selected players</button><div id="historyComparison"></div>
+</div>
 </section>
 <section id="mccReadme">
 <div class="readmeHero"><div style="font-size:12px;letter-spacing:2px;color:#75c9ff;font-weight:800">MAROONED • BLOODSAIL BUCCANEERS • ALLIANCE</div><h1>📖 Marooned Command Center — The “What Do I Click?” Guide</h1><p>MCC is built for everyday guild use: open the live bookmark, choose your character, update what changed, and get back to the game. This page explains what each part does, what gets shared, and what you can safely ignore.</p><div class="readmeNote"><b>The 10-second version:</b> Your Tracker is yours. The Exchange is for player-to-player trading. The Guild Bank is guild-owned stuff. Nothing from your personal tracker is published unless you choose to share it.</div><div class="readmeNote" style="margin-top:8px"><b>Coming from an older MCC tracker?</b> Use <b>Import Legacy Tracker</b> once. MCC adds that character to <b>My Characters</b>; after that, use the live MCC normally and let automatic saving handle the rest.</div></div>
@@ -4490,4 +4534,11 @@ document.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
+
+<script src="raid-core.js"></script>
+<script src="analysis-mode.js"></script>
+<script src="history-core.js"></script>
+<script src="raid-storage.js"></script>
+<script src="raid-ui.js"></script>
+<script src="history-ui.js"></script>
 </body></html>
